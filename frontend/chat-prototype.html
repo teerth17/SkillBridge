@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SkillBridge - Chat Prototype</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f3f4f6; --card:#ffffff; --muted:#6b7280; --accent:#2563eb;
+    }
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:#111827;}
+    .app{max-width:1000px;margin:24px auto;padding:16px;}
+    .header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .card{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);padding:12px;}
+    .col{display:flex;flex-direction:column;gap:10px;}
+    .row{display:flex;gap:8px;align-items:center;}
+    input[type=text], input[type=url], textarea, select{padding:8px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;width:100%;}
+    button{background:var(--accent);color:white;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid #dbeafe;}
+    .layout{display:grid;grid-template-columns:320px 1fr;gap:12px;}
+    .left{height:78vh;overflow:auto;}
+    .right{height:78vh;display:flex;flex-direction:column;}
+    .messages{flex:1;overflow:auto;padding:12px;background:linear-gradient(180deg,#fff 0%, #fbfbff 100%);border-radius:8px;}
+    .msg{padding:8px 10px;border-radius:10px;margin-bottom:8px;max-width:70%;}
+    .msg.me{background:#dbf3ff; margin-left:auto;}
+    .msg.other{background:#f3f4f6; margin-right:auto;}
+    .meta{font-size:12px;color:var(--muted);}
+    .controls{display:flex;gap:8px;margin-top:8px;}
+    .small{font-size:13px;color:var(--muted);}
+    .participants{font-size:13px;color:#0f172a;}
+    .status{font-weight:600;}
+    .typing{font-style:italic;color:#6b7280;margin-top:6px;}
+    .createRow{display:flex;gap:6px;}
+    pre {white-space:pre-wrap;background:#0b1220;color:#f8fafc;padding:8px;border-radius:6px;font-size:12px;}
+  </style>
+  <!-- Socket.IO client CDN (v4.x) -->
+
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div>
+        <h2 style="margin:0">SkillBridge — Chat Prototype</h2>
+        <div class="small">Open this page in two browsers/tabs to simulate two users.</div>
+      </div>
+      <div class="small">Session-service base: <span id="baseHost" class="status">http://localhost:4002</span></div>
+    </div>
+
+    <div class="layout">
+      <div class="left card col">
+        <div>
+          <label class="small">JWT (paste token from signin)</label>
+          <input id="jwt" type="text" placeholder="Bearer token not required; paste raw JWT" />
+        </div>
+
+        <div>
+          <label class="small">Existing Session ID (optional)</label>
+          <input id="sessionIdInput" type="text" placeholder="Paste session id or create below" />
+        </div>
+
+        <div class="card small">
+          <div style="font-weight:600;margin-bottom:8px">Create session (optional)</div>
+          <div class="createRow">
+            <input id="mentorId" type="text" placeholder="mentorId (e.g. m101)" />
+            <input id="userId" type="text" placeholder="userId (e.g. u205)" />
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="createSessionBtn">Create session</button>
+            <button id="fillFromCreate" class="ghost">Use created</button>
+          </div>
+          <div style="margin-top:8px" class="small">When created you'll get sessionId + meetingUrl.</div>
+        </div>
+
+        <div class="card small">
+          <div style="font-weight:600;margin-bottom:6px">Connection</div>
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <button id="joinBtn">Join Session</button>
+              <button id="leaveBtn" class="ghost">Leave</button>
+            </div>
+            <div>
+              <button id="clearLog" class="ghost">Clear Log</button>
+            </div>
+          </div>
+          <div style="margin-top:8px" class="small">
+            <div>Participants: <span id="participantsCount">0</span></div>
+            <div id="participantsList" class="participants"></div>
+            <div id="typingIndicator" class="typing"></div>
+            <div id="status" class="small" style="margin-top:8px;color:#ef4444"></div>
+          </div>
+        </div>
+
+        <div class="card small">
+          <div style="font-weight:600;margin-bottom:6px">Raw / Debug</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Last join / create results</div>
+          <pre id="logArea">—</pre>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="card" style="display:flex;flex-direction:column;gap:8px;padding:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:600">Chat</div>
+            <div class="small">Connected as: <span id="userIdDisplay">—</span></div>
+          </div>
+
+          <div class="messages" id="messages">
+            <!-- messages will appear here -->
+          </div>
+
+          <div style="display:flex;flex-direction:column">
+            <textarea id="messageInput" rows="2" placeholder="Type message..." ></textarea>
+            <div class="controls">
+              <button id="sendBtn">Send</button>
+              <button id="historyBtn" class="ghost">Load History</button>
+              <button id="openMeeting" class="ghost">Open Jitsi Meeting</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<!-- add this BEFORE your own script that references `io` -->
+<script src="http://localhost:4002/socket.io/socket.io.js"></script>
+
+
+
+
+<!-- 3) Your chat code (runs after the two blocks above because of defer) -->
+<script defer>
+  /*
+    Chat prototype page
+    - REST:
+        POST /sessions/create
+        GET  /sessions/:id
+        GET  /sessions/:id/messages
+        POST /sessions/:id/messages
+    - Socket.IO server at http://localhost:4002, JWT via auth.token
+  */
+
+  const API_BASE = 'http://localhost:4002';
+  document.getElementById('baseHost').textContent = API_BASE;
+
+  let socket = null;
+  let currentSessionId = '';
+  let localJwt = '';
+  let participants = new Set();
+
+  // DOM refs
+  const jwtInput = document.getElementById('jwt');
+  const sessionIdInput = document.getElementById('sessionIdInput');
+  const createBtn = document.getElementById('createSessionBtn');
+  const fillFromCreateBtn = document.getElementById('fillFromCreate');
+  const joinBtn = document.getElementById('joinBtn');
+  const leaveBtn = document.getElementById('leaveBtn');
+  const logArea = document.getElementById('logArea');
+  const messagesEl = document.getElementById('messages');
+  const sendBtn = document.getElementById('sendBtn');
+  const messageInput = document.getElementById('messageInput');
+  const historyBtn = document.getElementById('historyBtn');
+  const openMeeting = document.getElementById('openMeeting');
+  const participantsCount = document.getElementById('participantsCount');
+  const participantsList = document.getElementById('participantsList');
+  const typingIndicator = document.getElementById('typingIndicator');
+  const statusEl = document.getElementById('status');
+  const userIdDisplay = document.getElementById('userIdDisplay');
+  let lastCreated = null;
+
+  function log(msg){
+    const t = new Date().toLocaleTimeString();
+    logArea.textContent = `[${t}] ${typeof msg === 'string' ? msg : JSON.stringify(msg,null,2)}\n` + logArea.textContent;
+  }
+
+  async function api(path, opts = {}){
+    const headers = opts.headers || {};
+    const body = opts.body;
+    if (localJwt) headers['Authorization'] = 'Bearer ' + localJwt;
+    if (body && !(body instanceof FormData)) headers['Content-Type'] = 'application/json';
+    const res = await fetch(API_BASE + path, {
+      method: opts.method || (body ? 'POST' : 'GET'),
+      headers,
+      body: body && !(body instanceof FormData) ? JSON.stringify(body) : body,
+    });
+    const text = await res.text();
+    try { return { status: res.status, json: JSON.parse(text) }; }
+    catch(e){ return { status: res.status, text }; }
+  }
+
+  // Create session (unchanged)
+  createBtn.addEventListener('click', async () => {
+    const mentorId = document.getElementById('mentorId').value.trim();
+    const userId = document.getElementById('userId').value.trim();
+    if(!mentorId || !userId){ alert('fill mentorId and userId'); return; }
+    localJwt = jwtInput.value.trim();
+    log('Creating session (mentor='+mentorId+', user='+userId+')');
+    const { status, json } = await api('/sessions/create', { method: 'POST', body: { mentorId, userId }});
+    if(status >= 200 && status < 300){
+      log('Session created: ' + JSON.stringify(json));
+      lastCreated = json.session;
+      sessionIdInput.value = json.session.id || json.session.sessionId || json.session.roomName || '';
+      openMeeting.href = json.session.meetingUrl || '';
+      fillFromCreateBtn.disabled = false;
+    } else {
+      log('Create failed: ' + (json ? JSON.stringify(json) : 'status ' + status));
+      alert('Create failed: ' + (json && (json.error || json.message) ? (json.error||json.message) : status));
+    }
+  });
+
+  fillFromCreateBtn.addEventListener('click', () => {
+    if(lastCreated){
+      sessionIdInput.value = lastCreated.id || lastCreated.sessionId || '';
+      log('Filled session id from created: ' + sessionIdInput.value);
+    } else {
+      alert('No created session yet');
+    }
+  });
+
+  // Join session
+  joinBtn.addEventListener('click', async () => {
+    if(socket && socket.connected) { alert('Already connected. Leave first.'); return; }
+    currentSessionId = sessionIdInput.value.trim();
+    if(!currentSessionId){ alert('Please provide session id'); return; }
+    localJwt = jwtInput.value.trim();
+    if(!localJwt){ if(!confirm('No JWT provided. Connect anonymously?')) return; }
+
+    userIdDisplay.textContent = (localJwt ? localJwt.slice(0,8) + '...' : 'anon');
+
+    try {
+      statusEl.textContent = 'Connecting...';
+
+      // Guard: ensure the client is present before calling io()
+      if (typeof window.io === 'undefined') {
+        throw new Error('Socket.IO client not loaded (io is undefined)');
+      }
+
+      socket = io(API_BASE, {
+        auth: { token: localJwt },
+        transports: ['websocket']
+      });
+
+      socket.on('connect', () => {
+        statusEl.textContent = 'Connected (socketId: ' + socket.id + ')';
+        log('socket connected: ' + socket.id);
+        socket.emit('join_room', { sessionId: currentSessionId }, (ack) => {
+          if(!ack || !ack.success){ statusEl.textContent = 'Join failed'; log('join ack: '+ JSON.stringify(ack)); return; }
+          log('Joined session: ' + JSON.stringify(ack));
+          renderMessages(ack.messages || []);
+          participants = new Set();
+        });
+      });
+
+      socket.on('connect_error', (err) => {
+        statusEl.textContent = 'Connect error: ' + (err && err.message);
+        log('connect_error: ' + (err && err.message));
+      });
+
+      socket.on('disconnect', (r) => {
+        statusEl.textContent = 'Disconnected (' + r + ')';
+        log('socket disconnected: ' + r);
+      });
+
+      socket.on('chat_message', (msg) => {
+        log('new message event: ' + JSON.stringify(msg));
+        appendMessage(msg);
+      });
+
+      socket.on('participant_list', (list) => {
+        participants = new Set(list || []);
+        participantsCount.textContent = participants.size;
+        participantsList.textContent = Array.from(participants).join(', ');
+      });
+
+      socket.on('typing', ({ userId, typing }) => {
+        typingIndicator.textContent = typing ? `${userId} is typing...` : '';
+        if(typing) setTimeout(()=> typingIndicator.textContent = '', 1500);
+      });
+
+      statusEl.textContent = 'Connected and joined';
+    } catch(err){
+      statusEl.textContent = 'Error connecting: ' + (err.message || err);
+      log('socket init error: ' + err);
+    }
+  });
+
+   sendBtn.addEventListener('click', () => {
+    const text = messageInput.value.trim();
+    if (!text) return;
+    if (!socket || !socket.connected) { alert('Not connected'); return; }
+    if (!currentSessionId) { alert('No session'); return; }
+
+    // Emit to server; server expects event name "message"
+    socket.emit('chat_message', { sessionId: currentSessionId, text }, (ack) => {
+      if (!ack || !ack.success) {
+        log('send failed: ' + JSON.stringify(ack));
+        return;
+      }
+      log('send ack: ' + JSON.stringify(ack));
+      messageInput.value = '';
+      // optional optimistic append:
+      // appendMessage({ senderId: 'me', text, sentAt: new Date().toISOString() });
+    });
+  });
+
+  // Enter to send (Shift+Enter makes a new line)
+  messageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendBtn.click();
+    }
+  });
+
+  // Typing indicator
+  let typingTimer = null;
+  messageInput.addEventListener('input', () => {
+    if (!socket || !socket.connected || !currentSessionId) return;
+    socket.emit('typing', { sessionId: currentSessionId, typing: true });
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => {
+      socket.emit('typing', { sessionId: currentSessionId, typing: false });
+    }, 800);
+  });
+
+  // Load history (uses REST)
+  historyBtn.addEventListener('click', async () => {
+    const sid = currentSessionId || sessionIdInput.value.trim();
+    if (!sid) { alert('Provide session id'); return; }
+    const { status, json } = await api('/sessions/' + sid + '/messages');
+    if (status >= 200 && status < 300) {
+      renderMessages(json.messages || []);
+      log('Loaded history: ' + (json.messages||[]).length + ' messages');
+    } else {
+      log('History load failed: ' + JSON.stringify(json));
+      alert('History load failed: ' + (json && json.error ? json.error : status));
+    }
+  });
+
+  // Leave session
+  leaveBtn.addEventListener('click', () => {
+    if (!socket) return;
+    socket.emit('leave_room', { sessionId: currentSessionId }, (ack) => {
+      log('left: ' + JSON.stringify(ack));
+      socket.disconnect();
+      socket = null;
+      statusEl.textContent = 'Left session';
+      participants.clear();
+      participantsCount.textContent = '0';
+      participantsList.textContent = '';
+    });
+  });
+
+  // Leave / Send / Typing / History / Meeting handlers below (unchanged from your file) …
+
+  function appendMessage(msg){
+  // Normalize defensively
+  const sender = (msg && msg.senderId != null) ? String(msg.senderId) : 'anon';
+  const text = (msg && typeof msg.text === 'string') ? msg.text : String(msg?.text ?? '');
+  const when = (msg && msg.sentAt) ? new Date(msg.sentAt) : new Date();
+
+  const local = (localJwt ? localJwt.slice(0,5) : '');
+  const mine = (sender && local) ? sender.startsWith(local) : false;
+
+  const el = document.createElement('div');
+  el.className = 'msg ' + (mine ? 'me' : 'other');
+  el.innerHTML = `
+    <div style="font-size:12px;color:#374151;margin-bottom:4px">
+      <strong>${sender}</strong>
+      <span class="meta">${when.toLocaleTimeString()}</span>
+    </div>
+    <div style="white-space:pre-wrap">${escapeHtml(text)}</div>
+  `;
+  messagesEl.appendChild(el);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+
+  function renderMessages(list){
+    messagesEl.innerHTML = '';
+    (list||[]).forEach(m => appendMessage(m));
+  }
+
+  function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // Initial state
+  fillFromCreateBtn.disabled = true;
+  log('Chat prototype ready. Use two browsers to test two users.');
+</script>
+
+</body>
+</html>

@@ -1,0 +1,156 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: skillbridge-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: skillbridge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/data.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    build:
+      context: ./services/user-service
+    container_name: skillbridge-user-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./services/user-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  profile-service:
+    build:
+      context: ./services/profile-service
+    container_name: skillbridge-profile-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4001:4001"
+    environment:
+      PORT: 4001
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    volumes:
+      - ./services/profile-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  session-service:
+    build:
+      context: ./services/session-service
+    container_name: skillbridge-session-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4002:4002"
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      AUTH_SERVICE_URL: http://user-service:4000
+      PROFILE_SERVICE_URL: http://profile-service:4001
+      INTERNAL_SERVICE_TOKEN: change_me_internal
+    volumes:
+      - ./services/session-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  communication-service:
+    build:
+      context: ./services/communication-service
+    container_name: skillbridge-communication-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4004:4004"
+    environment:
+      PORT: 4004
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      AUTH_SERVICE_URL: http://user-service:4000
+      SESSION_SERVICE_URL: http://session-service:4002
+      INTERNAL_SERVICE_TOKEN: change_me_internal
+    volumes:
+      - ./services/communication-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  video-call-service:
+    build:
+      context: ./services/video-call-service
+    container_name: skillbridge-video-call-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4006:4006"
+    environment:
+      PORT: 4006
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      AUTH_SERVICE_URL: http://user-service:4000
+      SESSION_SERVICE_URL: http://session-service:4002
+      COMMUNICATION_SERVICE_URL: http://communication-service:4004
+      INTERNAL_SERVICE_TOKEN: change_me_internal
+      JITSI_BASE_URL: http://localhost:8000
+    volumes:
+      - ./services/video-call-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  search-service:
+    build:
+      context: ./services/search-service
+    container_name: skillbridge-search-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4003:4003"
+    environment:
+      PORT: 4003
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      AUTH_SERVICE_URL: http://user-service:4000
+    volumes:
+      - ./services/search-service:/app
+      - /app/node_modules
+    command: npm run dev
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+    container_name: skillbridge-analytics-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4005:4005"
+    environment:
+      PORT: 4006
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      AUTH_SERVICE_URL: http://user-service:4000
+    volumes:
+      - ./services/analytics-service:/app
+      - /app/node_modules
+    command: npm run dev
+  
+volumes:
+  pg_data:

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SkillBridge — Session & Chat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="./shared.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="brand">
+        <h1>SkillBridge</h1>
+        <span class="small">Session & Chat</span>
+      </div>
+      <div class="nav small">
+        <a href="./auth.html">Auth</a>
+        <a href="./session.html">Session & Chat</a>
+      </div>
+    </div>
+
+    <div class="layout">
+      <!-- LEFT: session + debug -->
+      <div class="left col">
+        <div class="card col">
+          <div style="font-weight:600;margin-bottom:6px">Session</div>
+          <div class="row">
+            <input id="mentorId" type="text" placeholder="mentorId (e.g. 2)" />
+            <input id="userId" type="text" placeholder="userId (e.g. 1)" />
+          </div>
+          <div class="row">
+            <button id="createSessionBtn">Create Session</button>
+            <button id="useCreatedBtn" class="ghost">Use created</button>
+          </div>
+          <input id="sessionIdInput" type="text" placeholder="Paste or use created session id" />
+          <div class="row">
+            <button id="joinSessionBtn">Join Session</button>
+            <a id="joinCallBtn" class="btn ghost" target="_blank" rel="noopener">Join Call</a>
+            <button id="loadHistoryBtn" class="ghost">Load History</button>
+          </div>
+          <div class="small">Meeting URL: <span id="meetingUrl">—</span></div>
+        </div>
+
+        <div class="card col">
+          <div style="font-weight:600;margin-bottom:6px">Debug</div>
+          <div class="small">User: <span id="whoami">—</span></div>
+          <div class="small">JWT: <span id="jwtPreview">—</span></div>
+          <pre id="logArea">—</pre>
+        </div>
+      </div>
+
+      <!-- RIGHT: chat -->
+      <div class="right card" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:600">Chat</div>
+          <div class="small">Connected as: <span id="userIdDisplay">—</span></div>
+        </div>
+        <div class="messages" id="messages"></div>
+        <textarea
+          id="messageInput"
+          rows="2"
+          placeholder="Type message... (Enter to send, Shift+Enter for newline)"
+        ></textarea>
+        <div class="row">
+          <button id="sendBtn">Send</button>
+          <div class="small" style="margin-left:auto">
+            Participants: <span id="participantsCount">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO client from session-service -->
+  <script src="http://localhost:4002/socket.io/socket.io.js"></script>
+
+  <script type="module">
+    import {
+      SESSION_API_BASE,
+      $,
+      logTo,
+      getJwt,
+      setUserLabel,
+      api,
+      escapeHtml
+    } from "./shared.js";
+
+    // === DOM refs ============================================================
+    const mentorId = $("mentorId");
+    const userId = $("userId");
+    const createSessionBtn = $("createSessionBtn");
+    const useCreatedBtn = $("useCreatedBtn");
+    const sessionIdInput = $("sessionIdInput");
+    const joinSessionBtn = $("joinSessionBtn");
+    const joinCallBtn = $("joinCallBtn");
+    const meetingUrlEl = $("meetingUrl");
+    const loadHistoryBtn = $("loadHistoryBtn");
+
+    const whoami = $("whoami");
+    const jwtPreview = $("jwtPreview");
+    const logArea = $("logArea");
+
+    const messagesEl = $("messages");
+    const messageInput = $("messageInput");
+    const sendBtn = $("sendBtn");
+    const participantsCount = $("participantsCount");
+    const userIdDisplay = $("userIdDisplay");
+
+    // === JWT helper: decode my user id ======================================
+    function base64urlToString(b64url) {
+      const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+      const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+      return atob(b64 + pad);
+    }
+
+    function getMyIdFromJwt(jwt) {
+      if (!jwt || jwt.split(".").length < 2) return null;
+      try {
+        const payload = JSON.parse(base64urlToString(jwt.split(".")[1]));
+        // user-service signs { id, email, name }
+        return payload?.id ?? null;
+      } catch {
+        return null;
+      }
+    }
+
+    // === Auth summary ========================================================
+    const jwt = getJwt();
+    jwtPreview.textContent = jwt ? jwt.slice(0, 12) + "…" : "—";
+    setUserLabel(whoami, jwt ? "signed-in" : "—");
+
+    const MY_ID = getMyIdFromJwt(jwt);
+    userIdDisplay.textContent =
+      MY_ID != null ? String(MY_ID) : jwt ? jwt.slice(0, 8) + "…" : "anon";
+
+    // === Local state =========================================================
+    const state = {
+      sessionId: "",
+      meetingUrl: "",
+      socket: null,
+      lastCreated: null
+    };
+
+    // === Session creation / usage ===========================================
+    createSessionBtn.addEventListener("click", async () => {
+      if (!getJwt()) return alert("Sign in first (see Auth page)");
+
+      const mid = mentorId.value.trim();
+      const uid = userId.value.trim();
+      if (!mid || !uid) return alert("Enter mentorId and userId");
+
+      const { status, json } = await api(SESSION_API_BASE, "/sessions/create", {
+        body: { mentorId: mid, userId: uid }
+      });
+      logTo(logArea, ["create session", status, json]);
+
+      if (status >= 200 && status < 300) {
+        state.lastCreated = json.session || json;
+        const sid = state.lastCreated.id || state.lastCreated.sessionId;
+        state.sessionId = sid;
+
+        sessionIdInput.value = sid || "";
+        state.meetingUrl = state.lastCreated.meetingUrl || "";
+
+        meetingUrlEl.textContent = state.meetingUrl || "—";
+        joinCallBtn.href = state.meetingUrl || "#";
+      } else {
+        alert(json?.message || "Create failed");
+      }
+    });
+
+    useCreatedBtn.addEventListener("click", () => {
+      if (!state.lastCreated) return alert("No created session yet");
+      const sid = state.lastCreated.id || state.lastCreated.sessionId;
+
+      state.sessionId = sid;
+      sessionIdInput.value = sid || "";
+
+      state.meetingUrl = state.lastCreated.meetingUrl || "";
+      meetingUrlEl.textContent = state.meetingUrl || "—";
+      joinCallBtn.href = state.meetingUrl || "#";
+    });
+
+  joinSessionBtn.addEventListener("click", async () => {
+  if (!getJwt()) return alert("Sign in first");
+
+  const sid = sessionIdInput.value.trim();
+  if (!sid) return alert("Enter session id");
+
+  state.sessionId = sid;
+
+  // 🔥 Fetch session meta so we can populate meeting URL even if this user didn't create the session
+  const { status, json } = await api(SESSION_API_BASE, `/sessions/${sid}`);
+  if (status >= 200 && status < 300) {
+    const session = json.session || json;
+
+    state.meetingUrl = session.meetingUrl || "";
+    meetingUrlEl.textContent = state.meetingUrl || "—";
+    joinCallBtn.href = state.meetingUrl || "#";
+  } else {
+    logTo(logArea, ["failed to fetch session meta", status, json]);
+  }
+
+  // Now connect to the socket
+  connectSocket();
+});
+
+    loadHistoryBtn.addEventListener("click", async () => {
+      const sid = state.sessionId || sessionIdInput.value.trim();
+      if (!sid) return alert("Enter session id");
+
+      const { status, json } = await api(
+        SESSION_API_BASE,
+        `/sessions/${sid}/messages`
+      );
+      logTo(logArea, ["history", status, json]);
+      if (status >= 200 && status < 300) {
+        renderMessages(json.messages || []);
+      }
+    });
+
+    // === Socket.IO connection ===============================================
+    function connectSocket() {
+      if (state.socket && state.socket.connected)
+        return alert("Already connected");
+      if (typeof window.io === "undefined")
+        return alert("Socket.IO client missing");
+
+      state.socket = io(SESSION_API_BASE, {
+        auth: { token: getJwt() },
+        transports: ["websocket"]
+      });
+
+      state.socket.on("connect", () => {
+        logTo(logArea, "socket connected " + state.socket.id);
+        state.socket.emit(
+          "join_room",
+          { sessionId: state.sessionId },
+          ack => {
+            logTo(logArea, ["join ack", ack]);
+            if (ack?.success) renderMessages(ack.messages || []);
+          }
+        );
+      });
+
+      state.socket.on("disconnect", reason => {
+        logTo(logArea, "socket disconnected: " + reason);
+      });
+
+      state.socket.on("chat_message", msg => appendMessage(msg));
+      // If you emit participant_list / typing, you can also hook them here
+      // state.socket.on('participant_list', arr => { ...update participantsCount... });
+    }
+
+    // === Sending messages ====================================================
+    sendBtn.addEventListener("click", () => {
+      const text = messageInput.value.trim();
+      if (!text) return;
+      if (!state.socket || !state.socket.connected)
+        return alert("Not connected");
+
+      state.socket.emit(
+        "chat_message",
+        { sessionId: state.sessionId, text },
+        ack => {
+          if (!ack?.success) logTo(logArea, ["send failed", ack]);
+          messageInput.value = "";
+        }
+      );
+    });
+
+    // optional: Enter to send
+    messageInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    // === Rendering messages ==================================================
+    function appendMessage(msg) {
+      const senderRaw =
+        msg && msg.senderId != null ? msg.senderId : "anon";
+      const sender = String(senderRaw);
+      const text =
+        typeof msg?.text === "string" ? msg.text : String(msg?.text ?? "");
+      const when = msg?.sentAt ? new Date(msg.sentAt) : new Date();
+
+      // This message is "mine" if senderId matches my user id from JWT
+      const mine =
+        MY_ID != null && String(msg.senderId) === String(MY_ID);
+
+      const el = document.createElement("div");
+      el.className = "msg " + (mine ? "me" : "other");
+      el.innerHTML = `
+        <div class="meta"><strong>${escapeHtml(
+          sender
+        )}</strong> · ${when.toLocaleTimeString()}</div>
+        <div style="white-space:pre-wrap">${escapeHtml(text)}</div>
+      `;
+      messagesEl.appendChild(el);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function renderMessages(list) {
+      messagesEl.innerHTML = "";
+      (list || []).forEach(appendMessage);
+    }
+
+    // Log that the page is ready
+    logTo(logArea, "Session & Chat page ready");
+  </script>
+</body>
+</html>

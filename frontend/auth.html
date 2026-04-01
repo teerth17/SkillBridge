@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SkillBridge — Sign In / Sign Up</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="./shared.css" />
+
+  <style>
+    /* Override layout for centered auth box */
+    .fullpage-center {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .brand-center {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .brand-center h1 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="fullpage-center">
+    <div class="auth-card">
+
+      <div class="brand-center">
+        <h1>SkillBridge</h1>
+        <div class="small">Welcome — please authenticate</div>
+      </div>
+
+      <input id="name" type="text" placeholder="name (for signup)" />
+      <input id="email" type="email" placeholder="email" />
+      <input id="password" type="password" placeholder="password" />
+
+      <div class="toggle-row">
+        <button id="signupBtn">Sign Up</button>
+        <button id="signinBtn" class="ghost">Sign In</button>
+      </div>
+
+      <div class="small" style="text-align:center; margin-top:8px;">
+        After logging in, you will be redirected to the Session page.
+      </div>
+
+      <div class="small" style="text-align:center; margin-top:10px;">
+        JWT: <span id="jwtPreview">—</span>
+      </div>
+
+      <button id="gotoSession" class="btn ghost" style="margin-top:8px;">Go to Session →</button>
+
+      <pre id="logArea" style="margin-top:10px; max-height:120px; overflow:auto;">—</pre>
+    </div>
+  </div>
+
+<script type="module">
+  import { USER_API_BASE, $, logTo, setJwt, getJwt, setUserLabel, api } from './shared.js';
+
+  const nameEl = $('name'), email = $('email'), password = $('password');
+  const signupBtn = $('signupBtn'), signinBtn = $('signinBtn');
+  const gotoSession = $('gotoSession');
+  const jwtPreview = $('jwtPreview'), logArea = $('logArea');
+
+  function refreshAuth() {
+    const jwt = getJwt();
+    jwtPreview.textContent = jwt ? jwt.slice(0,12)+'…' : '—';
+  }
+  refreshAuth();
+
+  signupBtn.addEventListener('click', async () => {
+    const n = nameEl.value.trim(), e = email.value.trim(), p = password.value.trim();
+    if (!n || !e || !p) return alert('Enter name, email, password');
+
+    const { status, json } = await api(USER_API_BASE, '/users/signup', {
+      body: { name: n, email: e, password: p }
+    });
+    logTo(logArea, ['signup', status, json]);
+
+    if (status >= 200 && status < 300) {
+      const token = json.token || json.jwt || '';
+      setJwt(token);
+      refreshAuth();
+      window.location.href = './session.html';
+    } else {
+      alert(json?.message || json?.error || 'Signup failed');
+    }
+  });
+
+  signinBtn.addEventListener('click', async () => {
+    const e = email.value.trim(), p = password.value.trim();
+    if (!e || !p) return alert('Enter email & password');
+
+    const { status, json } = await api(USER_API_BASE, '/users/signin', {
+      body: { email: e, password: p }
+    });
+    logTo(logArea, ['signin', status, json]);
+
+    if (status >= 200 && status < 300) {
+      const token = json.token || json.jwt || '';
+      setJwt(token);
+      refreshAuth();
+      window.location.href = './session.html';
+    } else {
+      alert(json?.message || json?.error || 'Signin failed');
+    }
+  });
+
+  gotoSession.addEventListener('click', () => {
+    window.location.href = './session.html';
+  });
+</script>
+
+</body>
+</html>
