@@ -10,9 +10,9 @@
         "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
     },
     "jest": {
+        "setupFiles": ["./tests/setup/env.js"],
   "testEnvironment": "node",
-  "transform": {},
-  "setupFiles": ["./tests/setup/env.js"]
+  "transform": {}
    },
     "dependencies": {
         "bcryptjs": "^3.0.3",

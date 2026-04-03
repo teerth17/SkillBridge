@@ -1,2 +1,2 @@
-process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
-process.env.JWT_SECRET = "testsecret";
+process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/skillbridge";
+process.env.JWT_SECRET = "test_secret";
