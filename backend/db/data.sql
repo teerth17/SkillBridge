@@ -304,7 +304,7 @@ BEGIN
     -- Check that reviewer is a participant of the session
     IF NOT EXISTS (
         SELECT 1 FROM "VideoCall" vc
-        JOIN Session s ON vc.session_id = s.session_id
+        JOIN "Session" s ON vc.session_id = s.session_id
         WHERE vc.video_call_id = NEW.video_call_id
         AND (s.user1_id = NEW.reviewer_id OR s.user2_id = NEW.reviewer_id)
     ) THEN

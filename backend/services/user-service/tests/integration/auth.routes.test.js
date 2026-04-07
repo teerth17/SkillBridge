@@ -1,13 +1,17 @@
 // import "dotenv/config";
 import request from "supertest";
 import app from "../setup/testApp.js";
-import { cleanDB } from "../setup/testDb.js";
+import { cleanDB , closeDB} from "../setup/testDb.js";
 
 describe("Auth Routes - Integration", () => {
 
   beforeEach(async () => {
     await cleanDB();
   });
+
+  afterAll(async () => {
+    await closeDB();
+  })
 
   // ================= REGISTER =================
 

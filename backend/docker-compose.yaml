@@ -152,6 +152,118 @@ services:
       - ./services/analytics-service:/app
       - /app/node_modules
     command: npm run dev
-  
+
+  user-service-test:
+    build:
+      context: ./services/user-service
+    container_name: skillbridge-user-service-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      JWT_SECRET: testsecret
+    command: npm test
+    profiles:
+      - test
+
+  profile-service-test:
+    build:
+      context: ./services/profile-service
+    container_name: skillbridge-profile-service-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      JWT_SECRET: testsecret
+      INTERNAL_SERVICE_TOKEN: test_internal_token
+    command: npm test
+    profiles:
+      - test
+      
+  session-service-test:
+    build:
+      context: ./services/session-service
+    container_name: skillbridge-session-service-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      JWT_SECRET: testsecret
+      INTERNAL_SERVICE_TOKEN: test_internal_token
+      AUTH_SERVICE_URL: http://user-service:4000
+      PROFILE_SERVICE_URL: http://profile-service:4001
+    command: npm test
+    profiles:
+      - test
+
+  communication-service-test:
+    build:
+      context: ./services/communication-service
+    container_name: skillbridge-communication-service-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      JWT_SECRET: testsecret
+      INTERNAL_SERVICE_TOKEN: test_internal_token
+      AUTH_SERVICE_URL: http://user-service:4000
+      SESSION_SERVICE_URL: http://session-service:4002
+    command: npm test
+    profiles:
+      - test
+
+  video-call-service-test:
+    build:
+      context: ./services/video-call-service
+    container_name: skillbridge-video-call-service-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      JWT_SECRET: testsecret
+      INTERNAL_SERVICE_TOKEN: test_internal_token
+      AUTH_SERVICE_URL: http://user-service:4000
+      SESSION_SERVICE_URL: http://session-service:4002
+      COMMUNICATION_SERVICE_URL: http://communication-service:4004
+      JITSI_BASE_URL: http://localhost:8000
+    command: npm test
+    profiles:
+      - test
+
+  search-service-test:
+    build:
+      context: ./services/search-service
+    container_name: skillbridge-search-service-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      JWT_SECRET: testsecret
+      AUTH_SERVICE_URL: http://user-service:4000
+    command: npm test
+    profiles:
+      - test
+
+  analytics-service-test:
+    build:
+      context: ./services/analytics-service
+    container_name: skillbridge-analytics-service-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+      JWT_SECRET: testsecret
+      AUTH_SERVICE_URL: http://user-service:4000
+    command: npm test
+    profiles:
+      - test
+
 volumes:
   pg_data:

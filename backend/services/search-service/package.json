@@ -2,9 +2,18 @@
   "name": "search-service",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
-  },
+  "start": "node src/index.js",
+  "dev": "nodemon src/index.js",
+  "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --forceExit",
+  "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit --runInBand",
+  "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration --runInBand --forceExit"
+},
+"jest": {
+  "testEnvironment": "node",
+  "transform": {},
+  "setupFiles": ["./tests/setup/env.js"],
+  "testTimeout": 15000
+},
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -13,6 +22,8 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "nodemon": "^3.0.3"
+    "jest": "^30.3.0",
+    "nodemon": "^3.0.3",
+    "supertest": "^7.2.2"
   }
 }

@@ -5,6 +5,6 @@ import * as R from "../controllers/review.controller.js";
 const router = Router();
 
 router.post("/:videoCallId/reviews", requireAuth, R.createReview);
-router.get("/:videoCallId/reviews", requireAuth, R.listReviews);
+router.get("/:videoCallId/reviews", requireAuth, R.getReviews);
 
 export default router;

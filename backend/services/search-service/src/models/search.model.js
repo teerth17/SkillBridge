@@ -71,7 +71,7 @@ async function searchByRole({ q, availability, minRating, sortBy, limit, role })
           DISTINCT jsonb_build_object(
             'skill_id', sk.skill_id,
             'skill_name', sk.skill_name,
-            'skill_category', sk.skill_category,
+            'category', sk.category,
             'proficiency_level', us.proficiency_level,
             'years_experience', us.years_experience
           )

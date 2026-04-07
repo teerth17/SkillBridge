@@ -1,4 +1,4 @@
-import "dotenv/config";
+// import "dotenv/config";
 import { jest } from "@jest/globals";
 
 // ---------------- MOCKS ----------------

@@ -7,12 +7,14 @@
     "scripts": {
         "start": "node src/index.js",
         "dev": "nodemon src/index.js",
-        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+        "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit",
+        "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/integration"
     },
     "jest": {
-        "setupFiles": ["./tests/setup/env.js"],
   "testEnvironment": "node",
-  "transform": {}
+  "transform": {},
+  "setupFiles": ["./tests/setup/env.js"]
    },
     "dependencies": {
         "bcryptjs": "^3.0.3",
