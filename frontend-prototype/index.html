@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SkillBridge Demo — Auth · Sessions · Jitsi · Chat</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{ --bg:#f3f4f6; --card:#ffffff; --muted:#6b7280; --accent:#2563eb; }
+    *{ box-sizing: border-box; }
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:#111827;}
+    .app{max-width:1100px;margin:24px auto;padding:16px;}
+    .header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .card{background:var(--card);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06);padding:14px;}
+    .col{display:flex;flex-direction:column;gap:10px;}
+    .row{display:flex;gap:8px;align-items:center;}
+    input[type=text], input[type=email], input[type=name],input[type=password], textarea, select{padding:8px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;width:100%;}
+    button{background:var(--accent);color:white;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid #dbeafe;}
+    .layout{display:grid;grid-template-columns:320px 1fr;gap:12px;}
+    .left{height:82vh;overflow:auto;}
+    .right{height:82vh;display:flex;flex-direction:column;}
+    .messages{flex:1;overflow:auto;padding:12px;background:linear-gradient(180deg,#fff 0%, #fbfbff 100%);border-radius:8px;}
+    .msg{padding:8px 10px;border-radius:10px;margin-bottom:8px;max-width:70%;}
+    .msg.me{background:#dbf3ff; margin-left:auto;}
+    .msg.other{background:#f3f4f6; margin-right:auto;}
+    .meta{font-size:12px;color:var(--muted);}    
+    .small{font-size:13px;color:var(--muted);}    
+    .participants{font-size:13px;color:#0f172a;}
+    .typing{font-style:italic;color:#6b7280;margin-top:6px;}
+    pre {white-space:pre-wrap;background:#0b1220;color:#f8fafc;padding:8px;border-radius:6px;font-size:12px;}
+    a.btn{ display:inline-block; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div>
+        <h2 style="margin:0">SkillBridge — Demo Frontend</h2>
+        <div class="small">Sign up / sign in → create session → join Jitsi → live chat</div>
+      </div>
+      <div class="small">
+        User API: <span id="userBase">http://localhost:4000</span> · Session API: <span id="sessionBase">http://localhost:4002</span>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="left col">
+        <!-- AUTH -->
+        <div class="card col">
+          <div style="font-weight:600;margin-bottom:6px">Auth</div>
+          <input id="name" type="text" placeholder="name" />
+          <input id="email" type="email" placeholder="email" />
+          <input id="password" type="password" placeholder="password" />
+          <div class="row" style="justify-content:space-between">
+            <div class="row" style="gap:6px">
+              <button id="signupBtn">Sign Up</button>
+              <button id="signinBtn" class="ghost">Sign In</button>
+            </div>
+            <button id="signoutBtn" class="ghost">Sign Out</button>
+          </div>
+          <div class="small">User: <span id="whoami">—</span></div>
+          <div class="small">JWT: <span id="jwtPreview">—</span></div>
+        </div>
+
+        <!-- SESSION -->
+        <div class="card col">
+          <div style="font-weight:600;margin-bottom:6px">Session</div>
+          <div class="row">
+            <input id="mentorId" type="text" placeholder="mentorId (e.g. 2)" />
+            <input id="userId" type="text" placeholder="userId (e.g. 1)" />
+          </div>
+          <div class="row" style="gap:6px">
+            <button id="createSessionBtn">Create Session</button>
+            <button id="useCreatedBtn" class="ghost">Use created</button>
+          </div>
+          <input id="sessionIdInput" type="text" placeholder="Paste or use created session id" />
+          <div class="row" style="gap:6px">
+            <button id="joinSessionBtn">Join Session</button>
+            <a id="joinCallBtn" class="btn ghost" target="_blank" rel="noopener">Join Call</a>
+            <button id="loadHistoryBtn" class="ghost">Load History</button>
+          </div>
+          <div class="small">Meeting URL: <span id="meetingUrl">—</span></div>
+        </div>
+
+        <!-- DEBUG / LOG -->
+        <div class="card col">
+          <div style="font-weight:600;margin-bottom:6px">Log</div>
+          <div class="row" style="justify-content:space-between">
+            <div class="small">Participants: <span id="participantsCount">0</span></div>
+            <button id="clearLog" class="ghost">Clear</button>
+          </div>
+          <div id="participantsList" class="participants"></div>
+          <div id="typingIndicator" class="typing"></div>
+          <div id="status" class="small" style="margin-top:6px;color:#ef4444"></div>
+          <pre id="logArea">—</pre>
+        </div>
+      </div>
+
+      <!-- CHAT -->
+      <div class="right card" style="display:flex;flex-direction:column;gap:8px;padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:600">Chat</div>
+          <div class="small">Connected as: <span id="userIdDisplay">—</span></div>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div style="display:flex;flex-direction:column">
+          <textarea id="messageInput" rows="2" placeholder="Type message... (Enter to send, Shift+Enter for newline)"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button id="sendBtn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO client must load before app code -->
+  <script src="http://localhost:4002/socket.io/socket.io.js"></script>
+
+  <script>
+  // ===== Config =====
+  const USER_API_BASE = 'http://localhost:4000';
+  const SESSION_API_BASE = 'http://localhost:4002';
+
+  // ===== State =====
+  const state = {
+    jwt: localStorage.getItem('sb_jwt') || '',
+    sessionId: '',
+    meetingUrl: '',
+    socket: null,
+  };
+
+  // ===== DOM =====
+  const $ = (id) => document.getElementById(id);
+  const email = $('email');
+  console.log("Name: ", email);
+  const nameEl = $('name');
+  console.log("Name: ", nameEl);
+  console.log("names: ", nameEl);
+  const password = $('password');
+  console.log("Name: ", password);
+  const signupBtn = $('signupBtn');
+  const signinBtn = $('signinBtn');
+  const signoutBtn = $('signoutBtn');
+  const whoami = $('whoami');
+  const jwtPreview = $('jwtPreview');
+  const mentorId = $('mentorId');
+  const userId = $('userId');
+  const createSessionBtn = $('createSessionBtn');
+  const useCreatedBtn = $('useCreatedBtn');
+  const sessionIdInput = $('sessionIdInput');
+  const joinSessionBtn = $('joinSessionBtn');
+  const joinCallBtn = $('joinCallBtn');
+  const meetingUrlEl = $('meetingUrl');
+  const loadHistoryBtn = $('loadHistoryBtn');
+  const participantsCount = $('participantsCount');
+  const participantsList = $('participantsList');
+  const typingIndicator = $('typingIndicator');
+  const statusEl = $('status');
+  const logArea = $('logArea');
+  const messagesEl = $('messages');
+  const userIdDisplay = $('userIdDisplay');
+  const messageInput = $('messageInput');
+  const sendBtn = $('sendBtn');
+  const clearLog = $('clearLog');
+
+  $('userBase').textContent = USER_API_BASE;
+  $('sessionBase').textContent = SESSION_API_BASE;
+
+  // ===== Utils =====
+  function log(msg){
+    const t = new Date().toLocaleTimeString();
+    const line = `[${t}] ${typeof msg === 'string' ? msg : JSON.stringify(msg,null,2)}`;
+    logArea.textContent = line + "\n" + logArea.textContent;
+  }
+  function setJwt(token){
+    state.jwt = token || '';
+    if (state.jwt) localStorage.setItem('sb_jwt', state.jwt); else localStorage.removeItem('sb_jwt');
+    jwtPreview.textContent = state.jwt ? state.jwt.slice(0,12) + '…' : '—';
+    userIdDisplay.textContent = state.jwt ? state.jwt.slice(0,8) + '…' : 'anon';
+  }
+  function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+  async function api(base, path, opts={}){
+    const headers = Object.assign({}, opts.headers||{});
+    const body = opts.body;
+    if (state.jwt) headers['Authorization'] = 'Bearer ' + state.jwt;
+    if (body && !(body instanceof FormData)) headers['Content-Type'] = 'application/json';
+    const res = await fetch(base + path, {
+      method: opts.method || (body ? 'POST' : 'GET'),
+      headers,
+      body: body && !(body instanceof FormData) ? JSON.stringify(body) : body,
+    });
+    const text = await res.text();
+    try { return { status: res.status, json: JSON.parse(text) }; }
+    catch(e){ return { status: res.status, text }; }
+  }
+
+  // ===== Auth =====
+  function setWho(email){ whoami.textContent = email || '—'; }
+
+  signupBtn.addEventListener('click', async () => {
+    console.log("enterd: " + email.value);
+    const n = nameEl.value;
+    const e = email.value;
+    console.log("email is: ", e);
+    const p = password.value.trim();
+    console.log("passowtd: " , p);
+    if(!n || !e || !p) return alert('Enter name, email & password');
+    const { status, json } = await api(USER_API_BASE, '\/users\/signup', { body: { name: n, email: e, password: p } });
+    log(['signup', status, json]);
+    if (status>=200 && status<300) {
+      setJwt(json.token || json.jwt || '');
+      setWho(json.user?.name || n || json.user?.email || e);
+      statusEl.textContent = '';
+    } else { statusEl.textContent = json?.message || 'Signup failed'; }
+  });
+
+  signinBtn.addEventListener('click', async () => {
+    const e = email.value.trim();
+    const p = password.value.trim();
+    if(!e || !p) return alert('Enter email & password');
+    const { status, json } = await api(USER_API_BASE, '/users/signin', { body: { email: e, password: p } });
+    log(['signin', status, json]);
+    if (status>=200 && status<300) {
+      setJwt(json.token || json.jwt || '');
+      setWho(json.user?.email || e);
+      statusEl.textContent = '';
+    } else { statusEl.textContent = json?.message || 'Signin failed'; }
+  });
+
+  signoutBtn.addEventListener('click', () => {
+    setJwt('');
+    setWho('');
+  });
+
+  // Restore previous jwt if present
+  if (state.jwt) { setJwt(state.jwt); setWho('restored-session'); }
+
+  // ===== Session =====
+  let lastCreated = null;
+
+  createSessionBtn.addEventListener('click', async () => {
+    if (!state.jwt) return alert('Sign in first');
+    const mid = mentorId.value.trim();
+    const uid = userId.value.trim();
+    if(!mid || !uid) return alert('Enter mentorId and userId');
+    const { status, json } = await api(SESSION_API_BASE, '/sessions/create', { body: { mentorId: mid, userId: uid } });
+    log(['create session', status, json]);
+    if (status>=200 && status<300) {
+      lastCreated = json.session || json;
+      const sid = lastCreated.id || lastCreated.sessionId;
+      state.sessionId = sid;
+      sessionIdInput.value = sid || '';
+      state.meetingUrl = lastCreated.meetingUrl || '';
+      meetingUrlEl.textContent = state.meetingUrl || '—';
+      joinCallBtn.href = state.meetingUrl || '#';
+    } else { alert(json?.message || 'Create failed'); }
+  });
+
+  useCreatedBtn.addEventListener('click', () => {
+    if (!lastCreated) return alert('No created session yet');
+    const sid = lastCreated.id || lastCreated.sessionId;
+    sessionIdInput.value = sid || '';
+    state.sessionId = sid;
+    state.meetingUrl = lastCreated.meetingUrl || '';
+    meetingUrlEl.textContent = state.meetingUrl || '—';
+    joinCallBtn.href = state.meetingUrl || '#';
+  });
+
+  joinSessionBtn.addEventListener('click', async () => {
+    if (!state.jwt) return alert('Sign in first');
+    const sid = sessionIdInput.value.trim();
+    if (!sid) return alert('Enter session id');
+    state.sessionId = sid;
+
+    // If we don't have meeting URL yet, fetch session meta
+    if (!state.meetingUrl) {
+      const { status, json } = await api(SESSION_API_BASE, `/sessions/${sid}`);
+      if (status>=200 && status<300) {
+        state.meetingUrl = json.meetingUrl || json.session?.meetingUrl || '';
+        meetingUrlEl.textContent = state.meetingUrl || '—';
+        joinCallBtn.href = state.meetingUrl || '#';
+      }
+    }
+
+    connectSocket();
+  });
+
+  loadHistoryBtn.addEventListener('click', async () => {
+    const sid = state.sessionId || sessionIdInput.value.trim();
+    if(!sid) return alert('Enter session id');
+    const { status, json } = await api(SESSION_API_BASE, `/sessions/${sid}/messages`);
+    log(['history', status, json]);
+    if (status>=200 && status<300) {
+      renderMessages(json.messages || []);
+    } else {
+      alert(json?.message || 'History failed');
+    }
+  });
+
+  clearLog.addEventListener('click', () => logArea.textContent = '—');
+
+  // ===== Sockets / Chat =====
+  function connectSocket(){
+    if (state.socket && state.socket.connected) {
+      alert('Already connected');
+      return;
+    }
+    statusEl.textContent = 'Connecting...';
+    if (typeof window.io === 'undefined') {
+      statusEl.textContent = 'Socket.IO client not loaded';
+      return;
+    }
+    state.socket = io(SESSION_API_BASE, { auth: { token: state.jwt }, transports: ['websocket'] });
+
+    state.socket.on('connect', () => {
+      statusEl.textContent = 'Connected';
+      log('socket connected: ' + state.socket.id);
+      state.socket.emit('join_room', { sessionId: state.sessionId }, (ack) => {
+        log(['join ack', ack]);
+        if (!ack || !ack.success) { statusEl.textContent = 'Join failed'; return; }
+        renderMessages(ack.messages || []);
+      });
+    });
+
+    state.socket.on('connect_error', (err) => {
+      statusEl.textContent = 'Connect error: ' + (err?.message || err);
+      log(['connect_error', err?.message || err]);
+    });
+
+    state.socket.on('disconnect', (r) => {
+      statusEl.textContent = 'Disconnected (' + r + ')';
+      log('socket disconnected: ' + r);
+    });
+
+    state.socket.on('participant_list', (list) => {
+      participantsCount.textContent = (list||[]).length;
+      participantsList.textContent = (list||[]).join(', ');
+    });
+
+    state.socket.on('typing', ({ userId, typing }) => {
+      typingIndicator.textContent = typing ? `${userId} is typing...` : '';
+      if (typing) setTimeout(()=> typingIndicator.textContent = '', 1200);
+    });
+
+    state.socket.on('chat_message', (msg) => {
+      log(['incoming', msg]);
+      appendMessage(msg);
+    });
+  }
+
+  sendBtn.addEventListener('click', () => {
+    const text = messageInput.value.trim();
+    if (!text) return;
+    if (!state.socket || !state.socket.connected) return alert('Not connected');
+    if (!state.sessionId) return alert('No session id');
+
+    state.socket.emit('chat_message', { sessionId: state.sessionId, text }, (ack) => {
+      if (!ack || !ack.success) {
+        log(['send failed', ack]);
+        return;
+      }
+      // Optional optimistic UI
+      // appendMessage({ senderId: 'me', text, sentAt: new Date().toISOString() });
+      messageInput.value = '';
+    });
+  });
+
+  messageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+  });
+
+  let typingTimer = null;
+  messageInput.addEventListener('input', () => {
+    if (!state.socket || !state.socket.connected || !state.sessionId) return;
+    state.socket.emit('typing', { sessionId: state.sessionId, typing: true });
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => {
+      state.socket.emit('typing', { sessionId: state.sessionId, typing: false });
+    }, 800);
+  });
+
+  function appendMessage(msg){
+    const sender = (msg && msg.senderId != null) ? String(msg.senderId) : 'anon';
+    const text = (msg && typeof msg.text === 'string') ? msg.text : String(msg?.text ?? '');
+    const when = (msg && msg.sentAt) ? new Date(msg.sentAt) : new Date();
+
+    const localPrefix = state.jwt ? state.jwt.slice(0,5) : '';
+    const mine = (sender && localPrefix) ? sender.startsWith(localPrefix) : false;
+
+    const el = document.createElement('div');
+    el.className = 'msg ' + (mine ? 'me' : 'other');
+    el.innerHTML = `
+      <div style="font-size:12px;color:#374151;margin-bottom:4px">
+        <strong>${escapeHtml(sender)}</strong>
+        <span class="meta">${when.toLocaleTimeString()}</span>
+      </div>
+      <div style="white-space:pre-wrap">${escapeHtml(text)}</div>`;
+    messagesEl.appendChild(el);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function renderMessages(list){
+    messagesEl.innerHTML = '';
+    (list||[]).forEach(m => appendMessage(m));
+  }
+
+  // Init
+  log('Demo ready. 1) Sign up/in  2) Create/Join  3) Join call  4) Chat');
+  </script>
+</body>
+</html>

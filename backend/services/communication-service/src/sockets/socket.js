@@ -6,14 +6,14 @@ const AUTH_URL = process.env.AUTH_SERVICE_URL || "http://user-service:4000";
 
 const VIDEO_URL = process.env.VIDEO_CALL_SERVICE_URL || "http://video-call-service:4006";
 
-async function createVideoCall({ token, sessionId, topic }) {
+async function createVideoCall({ token, sessionId, topic, mentorUserId }) {
   const r = await fetch(`${VIDEO_URL}/video-calls`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify({ sessionId, topic }),
+    body: JSON.stringify({ sessionId, topic,mentorUserId }),
   });
 
   const body = await r.json().catch(() => ({}));

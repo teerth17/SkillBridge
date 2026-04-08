@@ -146,12 +146,8 @@ export async function endCall(req, res, next) {
 
     // Promotion rule: if one participant is mentor and the other is user, promote the user after first completed session.
     const s = v.session;
-    const u1 = await User.getUserRole(s.user1_id);
-    const u2 = await User.getUserRole(s.user2_id);
-
-    let promoteUserId;
-    if (u1?.role === "mentor" && u2?.role === "user") promoteUserId = u2.user_id;
-    else if (u2?.role === "mentor" && u1?.role === "user") promoteUserId = u1.user_id;
+    const mentorId = ended.mentor_user_id;
+    const promoteUserId = s.user1_id === mentorId ? s.user2_id : s.user1_id;
 
     await SessionGate.notifyCallCompleted(ended.video_call_id, promoteUserId);
 

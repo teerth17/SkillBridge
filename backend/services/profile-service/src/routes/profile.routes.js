@@ -9,6 +9,9 @@ import * as BadgeCatalog from "../controllers/badgeCatalog.controller.js";
 
 const router = Router();
 
+router.get("/skills", SkillCatalog.getAllSkills);
+router.get("/badges", BadgeCatalog.getAllBadges);
+
 // public
 router.get("/:userId", Profile.getProfile);
 router.get("/:userId/badges", Badge.getBadges);
@@ -17,8 +20,5 @@ router.get("/:userId/badges", Badge.getBadges);
 router.put("/:userId", requireAuth, Profile.updateProfile);
 router.post("/:userId/skills", requireAuth, Skill.addSkill);
 router.delete("/:userId/skills/:skillId", requireAuth, Skill.removeSkill);
-
-router.get("/skills", SkillCatalog.getAllSkills);
-router.get("/badges", BadgeCatalog.getAllBadges);
 
 export default router;
