@@ -111,7 +111,7 @@ services:
       SESSION_SERVICE_URL: http://session-service:4002
       COMMUNICATION_SERVICE_URL: http://communication-service:4004
       INTERNAL_SERVICE_TOKEN: change_me_internal
-      JITSI_BASE_URL: http://localhost:8000
+      JITSI_BASE_URL: http://71.60.34.3:8000
     volumes:
       - ./services/video-call-service:/app
       - /app/node_modules
@@ -145,7 +145,7 @@ services:
     ports:
       - "4005:4005"
     environment:
-      PORT: 4006
+      PORT: 4005
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
       AUTH_SERVICE_URL: http://user-service:4000
     volumes:

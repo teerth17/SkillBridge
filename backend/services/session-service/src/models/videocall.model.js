@@ -17,6 +17,7 @@ export async function countCompletedCallsForUser(userId) {
      FROM "VideoCall" vc
      JOIN "Session" s ON s.session_id = vc.session_id
      WHERE (s.user1_id = $1 OR s.user2_id = $1)
+       AND vc.mentor_user_id != $1
        AND (vc.end_time IS NOT NULL OR vc.status = 'completed')`,
     [userId]
   );

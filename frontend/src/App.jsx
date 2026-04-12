@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { SocketProvider } from "./context/SocketContext";
+import { NotificationProvider } from "./context/NotificationContext";
 
 import Navbar from "./components/Navbar";
 import Register from "./pages/Register";
@@ -10,6 +12,12 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import Search from "./pages/Search";
+import Connections from "./pages/Connections";
+import Session from "./pages/Session";
+import Dashboard from "./pages/Dashboard";
+
+
+import Chats from "./pages/Chats";
 
 // Placeholder pages — will be built in upcoming sprints
 const Home = () => {
@@ -46,7 +54,11 @@ function AppRoutes() {
         <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 <Route path="/profile/:userId/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
 <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+<Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+<Route path="/chats" element={<ProtectedRoute><Chats /></ProtectedRoute>} />
 
+        <Route path="/connections" element={<ProtectedRoute><Connections /></ProtectedRoute>} />
+<Route path="/session/:sessionId" element={<ProtectedRoute><Session /></ProtectedRoute>} />
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
 
@@ -59,11 +71,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <SocketProvider>
+          <NotificationProvider>
+            <AppRoutes />
+          </NotificationProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

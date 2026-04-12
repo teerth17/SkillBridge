@@ -9,7 +9,8 @@ const acceptedSchema = z.object({
 const videoCreatedSchema = z.object({
   actorUserId: z.number().int().positive(),
   videoCallId: z.number().int().positive(),
-  meetingUrl: z.string().min(1).max(500).optional()
+  meetingUrl: z.string().min(1).max(500).optional(),
+  mentorUserId: z.number().int().positive().optional(),
 });
 
 const reviewSchema = z.object({
@@ -85,6 +86,7 @@ export async function videoCallCreated(req, res, next) {
       sessionId,
       videoCallId: parsed.data.videoCallId,
       meetingUrl: parsed.data.meetingUrl,
+      mentorUserId: parsed.data.mentorUserId,
       actorUserId: parsed.data.actorUserId,
       sentAt: msg.sent_at,
     });

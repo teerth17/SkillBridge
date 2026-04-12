@@ -6,6 +6,8 @@ const AUTH_URL = process.env.AUTH_SERVICE_URL || "http://user-service:4000";
 
 const VIDEO_URL = process.env.VIDEO_CALL_SERVICE_URL || "http://video-call-service:4006";
 
+const mentorSelections = new Map();
+
 async function createVideoCall({ token, sessionId, topic, mentorUserId }) {
   const r = await fetch(`${VIDEO_URL}/video-calls`, {
     method: "POST",
@@ -166,6 +168,7 @@ export function initSocket(httpServer) {
       sessionId: sid,
       videoCallId,
       meetingUrl,
+      mentorUserId: created.data?.mentorUserId,
       actorUserId: me.userId,
       sentAt: new Date().toISOString()
     });
@@ -174,6 +177,80 @@ export function initSocket(httpServer) {
   }
 });
 
+  // Broadcast mentor selection request to the other participant
+socket.on("request_mentor_selection", async ({ sessionId, initiatorId }) => {
+  const sid = Number(sessionId);
+  if (!Number.isFinite(sid)) return;
+
+  const v = await SessionGate.validateUserInSession({ token: me.token, sessionId: sid });
+  if (!v.ok) return;
+
+  // Broadcast to everyone in session (including the other user)
+  io.to(`session:${sid}`).emit("mentor_selection_requested", {
+    sessionId: sid,
+    initiatorId,
+  });
+});
+
+
+  socket.on("submit_mentor_selection", async ({ sessionId, selectedMentorId }) => {
+  const sid = Number(sessionId);
+  if (!Number.isFinite(sid)) return;
+  const v = await SessionGate.validateUserInSession({ token: me.token, sessionId: sid });
+  if (!v.ok) return;
+
+  // Record this user's selection
+  const selections = mentorSelections.get(sid) || {};
+  selections[me.userId] = selectedMentorId;
+  mentorSelections.set(sid, selections);
+
+  const votes = Object.values(selections);
+
+  // Need both users to have voted
+  if (votes.length < 2) {
+    // Tell everyone one person has voted, waiting for the other
+    io.to(`session:${sid}`).emit("mentor_selection_vote", {
+      sessionId: sid,
+      votedUserId: me.userId,
+      votesIn: votes.length,
+    });
+    return;
+  }
+
+  // Both voted — check if they agree
+  const allSame = votes.every(v => v === votes[0]);
+  mentorSelections.delete(sid); // clear
+
+  if (!allSame) {
+    // Disagreement — ask again
+    io.to(`session:${sid}`).emit("mentor_selection_disagreement", {
+      sessionId: sid,
+      message: "Both participants selected different mentors. Please try again.",
+    });
+    return;
+  }
+
+  // Agreement — create the call
+  const agreedMentorId = votes[0];
+  const created = await createVideoCall({
+    token: me.token,
+    sessionId: sid,
+    mentorUserId: agreedMentorId,
+  });
+
+  if (!created.ok) {
+    io.to(`session:${sid}`).emit("error", { message: created.error });
+    return;
+  }
+
+  io.to(`session:${sid}`).emit("video_call_initiated", {
+    sessionId: sid,
+    videoCallId: created.data.videoCallId,
+    meetingUrl: created.data.meetingUrl,
+    mentorUserId: agreedMentorId,
+    sentAt: new Date().toISOString(),
+  });
+});
     socket.on("disconnect", () => {
       // If needed, you can track online/offline globally here.
     });

@@ -11,14 +11,14 @@ function makeRoomId(sessionId) {
   return `skillbridge-session-${sessionId}-${Date.now()}`;
 }
 
-async function notifyVideoCallCreated({ sessionId, videoCallId, meetingUrl, actorUserId }) {
+async function notifyVideoCallCreated({ sessionId, videoCallId, meetingUrl, actorUserId, mentorUserId}) {
   const r = await fetch(`${COMM_URL}/communication/internal/sessions/${sessionId}/video-call-created`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-Internal-Token": process.env.INTERNAL_SERVICE_TOKEN,
     },
-    body: JSON.stringify({ actorUserId, videoCallId, meetingUrl }),
+    body: JSON.stringify({ actorUserId, videoCallId, meetingUrl,mentorUserId }),
   });
   return r.ok;
 }
@@ -93,6 +93,7 @@ export async function createCall(req, res, next) {
       videoCallId: created.video_call_id,
       meetingUrl,
       actorUserId: me,
+      mentorUserId: resolvedMentorId,
     });
 
     return ok(res, {
@@ -141,14 +142,13 @@ export async function endCall(req, res, next) {
 
     const ended = await VideoCall.markEnded(videoCallId);
     if (!ended) return fail(res, "Video call already ended or not found", 400);
+    console.log("Ended mentor_id: " + ended.mentor_user_id);
 
     await requestReview(ended.session_id, ended.video_call_id, req.user.userId);
 
     // Promotion rule: if one participant is mentor and the other is user, promote the user after first completed session.
     const s = v.session;
-    const mentorId = ended.mentor_user_id;
-    const promoteUserId = s.user1_id === mentorId ? s.user2_id : s.user1_id;
-
+    const promoteUserId = ended.mentor_user_id;
     await SessionGate.notifyCallCompleted(ended.video_call_id, promoteUserId);
 
     return ok(res, { videoCall: ended });

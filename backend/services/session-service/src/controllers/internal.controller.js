@@ -55,13 +55,6 @@ export async function onVideoCallCompleted(req, res, next) {
     if (!roleRow) return fail(res, "Target user not found", 404);
     if (roleRow.role === "mentor") return ok(res, { promoted: false, reason: "Already mentor" });
 
-    // Check if this is FIRST completed call for this user
-    const completedCount = await VideoCall.countCompletedCallsForUser(targetUserId);
-    // Since current call is already completed, count should be >=1. Promote if ==1.
-    if (completedCount !== 1) {
-      return ok(res, { promoted: false, reason: "Not first completed session", completedCount });
-    }
-
     // Call Profile service internal promote endpoint
     const r = await fetch(`${PROFILE_URL}/profiles/${targetUserId}/promote-to-mentor`, {
       method: "POST",

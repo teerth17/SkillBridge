@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getProfile } from "../api/profile";
+import { createConnection } from "../api/session";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
+import { getMyConnections, createOrGetSession } from "../api/session";
 
 const PROFICIENCY_COLORS = {
   Beginner: "badge-gray",
@@ -24,8 +26,26 @@ export default function Profile() {
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [requesting, setRequesting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null);  // ← moved here
+  const [connectionId, setConnectionId] = useState(null); 
 
   const isOwnProfile = user?.userId === Number(userId);
+
+  
+    const handleRequestMentorship = async () => {
+  setRequesting(true);
+  try {
+    await createConnection(Number(userId));
+    toast.success("Mentorship request sent!");
+    navigate("/connections");
+  } catch (err) {
+    const msg = err.response?.data?.error?.message || "Failed to send request";
+    toast.error(msg);
+  } finally {
+    setRequesting(false);
+  }
+};
 
   useEffect(() => {
     setLoading(true);
@@ -39,6 +59,25 @@ export default function Profile() {
       .finally(() => setLoading(false));
   }, [userId, navigate]);
 
+
+  useEffect(() => {
+  if (!userId || isOwnProfile) return;
+  getMyConnections()
+    .then((res) => {
+      const connections = res.data.data.connections || [];
+      const conn = connections.find(
+        (c) =>
+          (c.requester_id === user.userId && c.receiver_id === Number(userId)) ||
+          (c.receiver_id === user.userId && c.requester_id === Number(userId))
+      );
+      if (conn) {
+        setConnectionStatus(conn.status);
+        setConnectionId(conn.connection_id);
+      }
+    })
+    .catch(() => {});
+}, [userId, isOwnProfile, user.userId]);
+
   if (loading) {
     return (
       <div className="center-page">
@@ -48,6 +87,8 @@ export default function Profile() {
   }
 
   if (!profile) return null;
+
+  
 
   return (
     <div className="page">
@@ -171,16 +212,59 @@ export default function Profile() {
 
         {/* Actions — only shown on other people's profiles */}
         {!isOwnProfile && (
-          <div className="card">
-            <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Connect</h3>
-            <p className="text-muted text-sm mb-2">
-              Send a mentorship request to {profile.name}.
-            </p>
-            <button className="btn btn-primary">
-              Request Mentorship
-            </button>
-          </div>
-        )}
+  <div className="card">
+    <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Connect</h3>
+
+    {connectionStatus === null && (
+      <>
+        <p className="text-muted text-sm mb-2">
+          Send a mentorship request to {profile.name}.
+        </p>
+        <button
+          className="btn btn-primary"
+          onClick={handleRequestMentorship}
+          disabled={requesting}
+        >
+          {requesting ? <span className="spinner" /> : "Request Mentorship"}
+        </button>
+      </>
+    )}
+
+    {connectionStatus === "pending" && (
+      <p className="text-muted text-sm">
+        ⏳ Connection request pending — waiting for {profile.name} to respond.
+      </p>
+    )}
+
+    {connectionStatus === "accepted" && (
+      <>
+        <p className="text-muted text-sm mb-2">
+          ✅ You are connected with {profile.name}.
+        </p>
+        <button
+          className="btn btn-primary"
+          onClick={async () => {
+            try {
+              const res = await createOrGetSession(connectionId);
+              const session = res.data.data.session;
+              navigate(`/session/${session.session_id}`);
+            } catch (err) {
+              toast.error(err.response?.data?.error?.message || "Failed to open session");
+            }
+          }}
+        >
+          Open Session
+        </button>
+      </>
+    )}
+
+    {connectionStatus === "rejected" && (
+      <p className="text-muted text-sm">
+        ❌ Your previous connection request was declined.
+      </p>
+    )}
+  </div>
+)}
 
       </div>
     </div>
