@@ -245,7 +245,7 @@ describe("VideoCall Controller - endCall", () => {
     await VideoCallController.endCall(req, res, next);
 
     expect(mockMarkEnded).toHaveBeenCalledWith(1);
-    expect(mockNotifyCallCompleted).toHaveBeenCalled(1,1);
+    expect(mockNotifyCallCompleted).toHaveBeenCalledWith(1,1);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
