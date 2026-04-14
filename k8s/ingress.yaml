@@ -41,7 +41,7 @@ spec:
     - http:
         paths:
           # ── Auth / User ──────────────────────────────────────
-          - path: /api/auth
+          - path: /auth
             pathType: Prefix
             backend:
               service:
@@ -49,7 +49,7 @@ spec:
                 port:
                   number: 4000
 
-          - path: /api/users
+          - path: /users
             pathType: Prefix
             backend:
               service:
@@ -58,7 +58,7 @@ spec:
                   number: 4000
 
           # ── Profiles ─────────────────────────────────────────
-          - path: /api/profiles
+          - path: /profiles
             pathType: Prefix
             backend:
               service:
@@ -66,7 +66,7 @@ spec:
                 port:
                   number: 4001
 
-          - path: /api/skills
+          - path: /skills
             pathType: Prefix
             backend:
               service:
@@ -75,7 +75,7 @@ spec:
                   number: 4001
 
           # ── Sessions ─────────────────────────────────────────
-          - path: /api/sessions
+          - path: /sessions
             pathType: Prefix
             backend:
               service:
@@ -83,7 +83,7 @@ spec:
                 port:
                   number: 4002
 
-          - path: /api/connections
+          - path: /connections
             pathType: Prefix
             backend:
               service:
@@ -92,7 +92,7 @@ spec:
                   number: 4002
 
           # ── Search ───────────────────────────────────────────
-          - path: /api/search
+          - path: /search
             pathType: Prefix
             backend:
               service:
@@ -101,7 +101,7 @@ spec:
                   number: 4003
 
           # ── Communication (REST + Socket.IO) ─────────────────
-          - path: /api/messages
+          - path: /messages
             pathType: Prefix
             backend:
               service:
@@ -119,7 +119,7 @@ spec:
                   number: 4004
 
           # ── Analytics ────────────────────────────────────────
-          - path: /api/analytics
+          - path: /analytics
             pathType: Prefix
             backend:
               service:
@@ -127,7 +127,7 @@ spec:
                 port:
                   number: 4005
 
-          - path: /api/reviews
+          - path: /reviews
             pathType: Prefix
             backend:
               service:
@@ -136,7 +136,7 @@ spec:
                   number: 4005
 
           # ── Video Calls ──────────────────────────────────────
-          - path: /api/video
+          - path: /video
             pathType: Prefix
             backend:
               service:
