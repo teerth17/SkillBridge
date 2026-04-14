@@ -12,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/communication/health", (_, res) => res.json({ ok: true }));
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use("/communication", messageRoutes);
 app.use("/communication/internal", internalRoutes);
