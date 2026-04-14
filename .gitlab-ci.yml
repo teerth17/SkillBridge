@@ -54,7 +54,7 @@ stages:
   stage: test
   image: node:20-alpine
   only:
-    - main
+    - master
     - develop
     - merge_requests
 
@@ -137,7 +137,7 @@ test:frontend:
   stage: test
   image: node:20-alpine
   only:
-    - main
+    - master
     - develop
     - merge_requests
   script:
@@ -159,7 +159,7 @@ build-push:user-service:
   variables:
     SERVICE_NAME: user-service
   only:
-    - main
+    - master
 
 build-push:profile-service:
   <<: *docker_build_push
@@ -167,7 +167,7 @@ build-push:profile-service:
   variables:
     SERVICE_NAME: profile-service
   only:
-    - main
+    - master
 
 build-push:session-service:
   <<: *docker_build_push
@@ -175,7 +175,7 @@ build-push:session-service:
   variables:
     SERVICE_NAME: session-service
   only:
-    - main
+    - master
 
 build-push:search-service:
   <<: *docker_build_push
@@ -183,7 +183,7 @@ build-push:search-service:
   variables:
     SERVICE_NAME: search-service
   only:
-    - main
+    - master
 
 build-push:communication-service:
   <<: *docker_build_push
@@ -191,7 +191,7 @@ build-push:communication-service:
   variables:
     SERVICE_NAME: communication-service
   only:
-    - main
+    - master
 
 build-push:analytics-service:
   <<: *docker_build_push
@@ -199,7 +199,7 @@ build-push:analytics-service:
   variables:
     SERVICE_NAME: analytics-service
   only:
-    - main
+    - master
 
 build-push:video-call-service:
   <<: *docker_build_push
@@ -207,7 +207,7 @@ build-push:video-call-service:
   variables:
     SERVICE_NAME: video-call-service
   only:
-    - main
+    - master
 
 build-push:frontend:
   stage: build
@@ -221,7 +221,7 @@ build-push:frontend:
     - docker push $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA
     - docker push $ECR_REGISTRY/skillbridge-frontend:latest
   only:
-    - main
+    - master
 
 # ─── STAGE: PUSH (tag only — images already in ECR) ──────────
 # This stage is a lightweight tag-promotion step.
@@ -245,7 +245,7 @@ promote:stable-tags:
           --image-manifest "$MANIFEST" || true
       done
   only:
-    - main
+    - master
 
 # ─── STAGE: DEPLOY ───────────────────────────────────────────
 
@@ -301,7 +301,7 @@ deploy:eks:
 
   environment:
     name: production
-    url: https://skillbridge.yourdomain.com
+    url: https://skillbridge.yourdomaster.com
   only:
-    - main
+    - master
   when: on_success
