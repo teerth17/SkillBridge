@@ -1,17 +1,5 @@
 # ============================================================
 # SkillBridge — GitLab CI/CD Pipeline
-# Stages: test → build → push (ECR) → deploy (EKS)
-#
-# Required GitLab CI/CD Variables (Settings > CI/CD > Variables):
-#   AWS_ACCESS_KEY_ID       — IAM user key
-#   AWS_SECRET_ACCESS_KEY   — IAM user secret
-#   AWS_ACCOUNT_ID          — e.g. 123456789012
-#   AWS_REGION              — e.g. us-east-1
-#   EKS_CLUSTER_NAME        — e.g. skillbridge-cluster
-#   JITSI_BASE_URL          — e.g. http://<jitsi-ec2-public-ip>:8000
-#   JWT_SECRET              — your production JWT secret
-#   INTERNAL_SERVICE_TOKEN  — your production internal token
-#   DB_PASSWORD             — your RDS postgres password
 # ============================================================
 
 variables:
@@ -26,8 +14,29 @@ stages:
   - push
   - deploy
 
-# ─── TEMPLATES ───────────────────────────────────────────────
+# ─── SHARED BEFORE_SCRIPT (loads DB schema) ──────────────────
+.load_schema: &load_schema
+  - apk add --no-cache postgresql-client
+  - |
+    echo "Waiting for Postgres..."
+    for i in $(seq 1 30); do
+      pg_isready -h postgres -U postgres && break
+      echo "  attempt $i/30..."
+      sleep 2
+    done
+  - PGPASSWORD=postgres psql -h postgres -U postgres -d skillbridge -f backend/db/data.sql
+  - echo "Schema loaded"
 
+# ─── SHARED POSTGRES SERVICE ─────────────────────────────────
+.postgres_service: &postgres_service
+  - name: postgres:15
+    alias: postgres
+    variables:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: skillbridge
+
+# ─── SHARED AWS SETUP ────────────────────────────────────────
 .aws_setup: &aws_setup
   before_script:
     - apt-get update -qq && apt-get install -y -qq curl unzip
@@ -37,6 +46,7 @@ stages:
     - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
     - aws configure set region $AWS_REGION
 
+# ─── SHARED BUILD+PUSH TEMPLATE ──────────────────────────────
 .docker_build_push: &docker_build_push
   image: docker:24
   services:
@@ -50,16 +60,15 @@ stages:
 
 # ─── STAGE: TEST ─────────────────────────────────────────────
 
-.service_test: &service_test
+test:user-service:
   stage: test
   image: node:20-alpine
   only:
     - master
     - develop
     - merge_requests
-
-test:user-service:
-  <<: *service_test
+  services: *postgres_service
+  before_script: *load_schema
   script:
     - cd backend/services/user-service
     - npm ci
@@ -67,16 +76,16 @@ test:user-service:
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
-  services:
-    - name: postgres:15
-      alias: postgres
-      variables:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        POSTGRES_DB: skillbridge
 
 test:profile-service:
-  <<: *service_test
+  stage: test
+  image: node:20-alpine
+  only:
+    - master
+    - develop
+    - merge_requests
+  services: *postgres_service
+  before_script: *load_schema
   script:
     - cd backend/services/profile-service
     - npm ci
@@ -85,16 +94,16 @@ test:profile-service:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
     INTERNAL_SERVICE_TOKEN: test_internal_token
-  services:
-    - name: postgres:15
-      alias: postgres
-      variables:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        POSTGRES_DB: skillbridge
 
 test:session-service:
-  <<: *service_test
+  stage: test
+  image: node:20-alpine
+  only:
+    - master
+    - develop
+    - merge_requests
+  services: *postgres_service
+  before_script: *load_schema
   script:
     - cd backend/services/session-service
     - npm ci
@@ -105,16 +114,16 @@ test:session-service:
     INTERNAL_SERVICE_TOKEN: test_internal_token
     AUTH_SERVICE_URL: http://user-service:4000
     PROFILE_SERVICE_URL: http://profile-service:4001
-  services:
-    - name: postgres:15
-      alias: postgres
-      variables:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        POSTGRES_DB: skillbridge
 
 test:communication-service:
-  <<: *service_test
+  stage: test
+  image: node:20-alpine
+  only:
+    - master
+    - develop
+    - merge_requests
+  services: *postgres_service
+  before_script: *load_schema
   script:
     - cd backend/services/communication-service
     - npm ci
@@ -125,13 +134,64 @@ test:communication-service:
     INTERNAL_SERVICE_TOKEN: test_internal_token
     AUTH_SERVICE_URL: http://user-service:4000
     SESSION_SERVICE_URL: http://session-service:4002
-  services:
-    - name: postgres:15
-      alias: postgres
-      variables:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        POSTGRES_DB: skillbridge
+
+test:video-call-service:
+  stage: test
+  image: node:20-alpine
+  only:
+    - master
+    - develop
+    - merge_requests
+  services: *postgres_service
+  before_script: *load_schema
+  script:
+    - cd backend/services/video-call-service
+    - npm ci
+    - npm test
+  variables:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    JWT_SECRET: testsecret
+    INTERNAL_SERVICE_TOKEN: test_internal_token
+    AUTH_SERVICE_URL: http://user-service:4000
+    SESSION_SERVICE_URL: http://session-service:4002
+    COMMUNICATION_SERVICE_URL: http://communication-service:4004
+    JITSI_BASE_URL: http://localhost:8000
+
+test:search-service:
+  stage: test
+  image: node:20-alpine
+  only:
+    - master
+    - develop
+    - merge_requests
+  services: *postgres_service
+  before_script: *load_schema
+  script:
+    - cd backend/services/search-service
+    - npm ci
+    - npm test
+  variables:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    JWT_SECRET: testsecret
+    AUTH_SERVICE_URL: http://user-service:4000
+
+test:analytics-service:
+  stage: test
+  image: node:20-alpine
+  only:
+    - master
+    - develop
+    - merge_requests
+  services: *postgres_service
+  before_script: *load_schema
+  script:
+    - cd backend/services/analytics-service
+    - npm ci
+    - npm test
+  variables:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    JWT_SECRET: testsecret
+    AUTH_SERVICE_URL: http://user-service:4000
 
 test:frontend:
   stage: test
@@ -149,9 +209,7 @@ test:frontend:
       - frontend/dist/
     expire_in: 1 hour
 
-# ─── STAGE: BUILD + PUSH (combined per service) ──────────────
-# We combine build & push so we don't store large images as artifacts.
-# Each job builds the Docker image and immediately pushes to ECR.
+# ─── STAGE: BUILD + PUSH ─────────────────────────────────────
 
 build-push:user-service:
   <<: *docker_build_push
@@ -223,13 +281,15 @@ build-push:frontend:
   only:
     - master
 
-# ─── STAGE: PUSH (tag only — images already in ECR) ──────────
-# This stage is a lightweight tag-promotion step.
-# It tags the commit-sha image as "stable" after all builds pass.
+# ─── STAGE: PUSH ─────────────────────────────────────────────
 
 promote:stable-tags:
   stage: push
   image: amazon/aws-cli:latest
+  before_script:
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $AWS_REGION
   script:
     - |
       SERVICES="user-service profile-service session-service search-service communication-service analytics-service video-call-service skillbridge-frontend"
@@ -254,14 +314,9 @@ deploy:eks:
   image: alpine:3.19
   <<: *aws_setup
   script:
-    # Install kubectl
     - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     - chmod +x kubectl && mv kubectl /usr/local/bin/
-
-    # Update kubeconfig for EKS
     - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
-
-    # Create/update Kubernetes secrets from CI variables
     - |
       kubectl create secret generic skillbridge-secrets \
         --namespace=$K8S_NAMESPACE \
@@ -271,15 +326,10 @@ deploy:eks:
         --from-literal=DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@${RDS_ENDPOINT}:5432/skillbridge" \
         --save-config \
         --dry-run=client -o yaml | kubectl apply -f -
-
-    # Apply all manifests
     - kubectl apply -f k8s/namespace.yaml
     - kubectl apply -f k8s/configmap.yaml
-    - kubectl apply -f k8s/secrets.yaml
-    - kubectl apply -f k8s/services/
+    - kubectl apply -f k8s/services/ -R
     - kubectl apply -f k8s/ingress.yaml
-
-    # Rolling update — set the new image tag on each deployment
     - |
       SERVICES="user-service profile-service session-service search-service communication-service analytics-service video-call-service"
       for SVC in $SERVICES; do
@@ -291,17 +341,14 @@ deploy:eks:
       kubectl set image deployment/frontend \
         frontend=$ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA \
         --namespace=$K8S_NAMESPACE
-
-    # Wait for rollouts
     - |
       ALL_DEPLOYMENTS="user-service profile-service session-service search-service communication-service analytics-service video-call-service frontend"
       for DEP in $ALL_DEPLOYMENTS; do
         kubectl rollout status deployment/$DEP --namespace=$K8S_NAMESPACE --timeout=180s
       done
-
   environment:
     name: production
-    url: https://skillbridge.yourdomaster.com
+    url: https://skillbridge.yourdomain.com
   only:
     - master
   when: on_success
