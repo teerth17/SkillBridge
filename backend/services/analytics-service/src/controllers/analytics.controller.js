@@ -1,7 +1,7 @@
 import { ok, fail } from "../utils/response.js";
 import * as A from "../models/analytics.model.js";
 
-// GET /analytics/dashboard
+// GET /analytics/dashboards
 export async function dashboard(req, res, next) {
   try {
     const data = await A.getUserDashboard(req.user.userId);
