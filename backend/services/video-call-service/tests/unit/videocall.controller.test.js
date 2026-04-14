@@ -237,17 +237,15 @@ describe("VideoCall Controller - endCall", () => {
     });
     mockMarkEnded.mockResolvedValue({
       video_call_id: 1, session_id: 10, status: "completed",
+      mentor_user_id: 1,
       end_time: new Date(), duration_minutes: 30,
     });
-    mockGetUserRole
-      .mockResolvedValueOnce({ user_id: 1, role: "mentor" })
-      .mockResolvedValueOnce({ user_id: 2, role: "user" });
     mockNotifyCallCompleted.mockResolvedValue({ ok: true });
 
     await VideoCallController.endCall(req, res, next);
 
     expect(mockMarkEnded).toHaveBeenCalledWith(1);
-    expect(mockNotifyCallCompleted).toHaveBeenCalled();
+    expect(mockNotifyCallCompleted).toHaveBeenCalled(1,1);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
