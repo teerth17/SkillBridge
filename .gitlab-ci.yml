@@ -305,8 +305,9 @@ build-push:frontend:
 
 promote:stable-tags:
   stage: push
-  image: amazon/aws-cli:latest
+  image: python:3.11-slim
   before_script:
+    - pip install awscli --quiet
     - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
     - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
     - export AWS_DEFAULT_REGION=$AWS_REGION
