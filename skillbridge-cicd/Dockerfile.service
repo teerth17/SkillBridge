@@ -1,0 +1,37 @@
+# ============================================================
+# Production Dockerfile — SkillBridge Node.js microservice
+# Copy this into each backend/services/<name>/ directory.
+#
+# Key differences from dev:
+#   - Multi-stage build (smaller final image)
+#   - Runs `npm start` not `npm run dev` (no nodemon)
+#   - No source volume mounts
+#   - Runs as non-root user
+# ============================================================
+
+# Stage 1: Install dependencies
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Stage 2: Production image
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+# Non-root user for security
+RUN addgroup -g 1001 -S nodejs && adduser -S nodeuser -u 1001
+USER nodeuser
+
+# Copy only what's needed
+COPY --from=deps --chown=nodeuser:nodejs /app/node_modules ./node_modules
+COPY --chown=nodeuser:nodejs . .
+
+# Health check endpoint — all services must expose GET /health
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:$PORT/health || exit 1
+
+EXPOSE $PORT
+
+# Use `npm start` (maps to `node src/index.js` or `node index.js`)
+CMD ["npm", "start"]

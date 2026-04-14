@@ -1,0 +1,155 @@
+# ============================================================
+# Ingress — AWS ALB Controller
+# Routes external HTTPS traffic to each microservice.
+#
+# Prerequisites:
+#   1. AWS Load Balancer Controller installed in the cluster
+#   2. An ACM certificate for your domain (for TLS)
+#   3. Replace skillbridge.yourdomain.com with your real domain
+#      OR remove the host: line to use the ALB DNS name directly
+#      (useful for thesis demo before you have a domain)
+# ============================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: skillbridge-ingress
+  namespace: skillbridge
+  annotations:
+    # ALB controller
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+    # TLS — comment out ssl-redirect if you don't have an ACM cert yet
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT:certificate/YOUR-CERT-ID
+
+    # Health check — all services expose GET /health
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+
+    # Sticky sessions for Socket.IO (communication-service)
+    alb.ingress.kubernetes.io/target-group-attributes: >-
+      stickiness.enabled=true,
+      stickiness.type=lb_cookie,
+      stickiness.lb_cookie.duration_seconds=86400
+
+spec:
+  rules:
+    - http:
+        paths:
+          # ── Auth / User ──────────────────────────────────────
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 4000
+
+          - path: /api/users
+            pathType: Prefix
+            backend:
+              service:
+                name: user-service
+                port:
+                  number: 4000
+
+          # ── Profiles ─────────────────────────────────────────
+          - path: /api/profiles
+            pathType: Prefix
+            backend:
+              service:
+                name: profile-service
+                port:
+                  number: 4001
+
+          - path: /api/skills
+            pathType: Prefix
+            backend:
+              service:
+                name: profile-service
+                port:
+                  number: 4001
+
+          # ── Sessions ─────────────────────────────────────────
+          - path: /api/sessions
+            pathType: Prefix
+            backend:
+              service:
+                name: session-service
+                port:
+                  number: 4002
+
+          - path: /api/connections
+            pathType: Prefix
+            backend:
+              service:
+                name: session-service
+                port:
+                  number: 4002
+
+          # ── Search ───────────────────────────────────────────
+          - path: /api/search
+            pathType: Prefix
+            backend:
+              service:
+                name: search-service
+                port:
+                  number: 4003
+
+          # ── Communication (REST + Socket.IO) ─────────────────
+          - path: /api/messages
+            pathType: Prefix
+            backend:
+              service:
+                name: communication-service
+                port:
+                  number: 4004
+
+          # Socket.IO upgrade path — must be listed explicitly
+          - path: /socket.io
+            pathType: Prefix
+            backend:
+              service:
+                name: communication-service
+                port:
+                  number: 4004
+
+          # ── Analytics ────────────────────────────────────────
+          - path: /api/analytics
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 4005
+
+          - path: /api/reviews
+            pathType: Prefix
+            backend:
+              service:
+                name: analytics-service
+                port:
+                  number: 4005
+
+          # ── Video Calls ──────────────────────────────────────
+          - path: /api/video
+            pathType: Prefix
+            backend:
+              service:
+                name: video-call-service
+                port:
+                  number: 4006
+
+          # ── Frontend (catch-all — must be last) ──────────────
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

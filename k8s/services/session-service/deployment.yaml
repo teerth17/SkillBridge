@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: session-service
+  namespace: skillbridge
+  labels:
+    app: session-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: session-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: session-service
+    spec:
+      containers:
+        - name: session-service
+          image: ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/session-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4002
+          env:
+            - name: PORT
+              value: "4002"
+            - name: NODE_ENV
+              value: production
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: skillbridge-secrets
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: skillbridge-secrets
+                  key: JWT_SECRET
+            - name: INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: skillbridge-secrets
+                  key: INTERNAL_SERVICE_TOKEN
+            # Service URLs — mirrors docker-compose exactly
+            - name: AUTH_SERVICE_URL
+              value: "http://user-service:4000"
+            - name: PROFILE_SERVICE_URL
+              value: "http://profile-service:4001"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4002
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

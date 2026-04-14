@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: profile-service
+  namespace: skillbridge
+  labels:
+    app: profile-service
+spec:
+  type: ClusterIP
+  selector:
+    app: profile-service
+  ports:
+    - name: http
+      port: 4001
+      targetPort: 4001
+      protocol: TCP

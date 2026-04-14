@@ -1,0 +1,307 @@
+# ============================================================
+# SkillBridge — GitLab CI/CD Pipeline
+# Stages: test → build → push (ECR) → deploy (EKS)
+#
+# Required GitLab CI/CD Variables (Settings > CI/CD > Variables):
+#   AWS_ACCESS_KEY_ID       — IAM user key
+#   AWS_SECRET_ACCESS_KEY   — IAM user secret
+#   AWS_ACCOUNT_ID          — e.g. 123456789012
+#   AWS_REGION              — e.g. us-east-1
+#   EKS_CLUSTER_NAME        — e.g. skillbridge-cluster
+#   JITSI_BASE_URL          — e.g. http://<jitsi-ec2-public-ip>:8000
+#   JWT_SECRET              — your production JWT secret
+#   INTERNAL_SERVICE_TOKEN  — your production internal token
+#   DB_PASSWORD             — your RDS postgres password
+# ============================================================
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  ECR_REGISTRY: "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+  K8S_NAMESPACE: skillbridge
+
+stages:
+  - test
+  - build
+  - push
+  - deploy
+
+# ─── TEMPLATES ───────────────────────────────────────────────
+
+.aws_setup: &aws_setup
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl unzip
+    - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    - unzip -q awscliv2.zip && ./aws/install
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $AWS_REGION
+
+.docker_build_push: &docker_build_push
+  image: docker:24
+  services:
+    - docker:24-dind
+  <<: *aws_setup
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/$SERVICE_NAME:latest ./backend/services/$SERVICE_NAME
+    - docker push $ECR_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/$SERVICE_NAME:latest
+
+# ─── STAGE: TEST ─────────────────────────────────────────────
+
+.service_test: &service_test
+  stage: test
+  image: node:20-alpine
+  only:
+    - main
+    - develop
+    - merge_requests
+
+test:user-service:
+  <<: *service_test
+  script:
+    - cd backend/services/user-service
+    - npm ci
+    - npm test
+  variables:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    JWT_SECRET: testsecret
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: skillbridge
+
+test:profile-service:
+  <<: *service_test
+  script:
+    - cd backend/services/profile-service
+    - npm ci
+    - npm test
+  variables:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    JWT_SECRET: testsecret
+    INTERNAL_SERVICE_TOKEN: test_internal_token
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: skillbridge
+
+test:session-service:
+  <<: *service_test
+  script:
+    - cd backend/services/session-service
+    - npm ci
+    - npm test
+  variables:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    JWT_SECRET: testsecret
+    INTERNAL_SERVICE_TOKEN: test_internal_token
+    AUTH_SERVICE_URL: http://user-service:4000
+    PROFILE_SERVICE_URL: http://profile-service:4001
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: skillbridge
+
+test:communication-service:
+  <<: *service_test
+  script:
+    - cd backend/services/communication-service
+    - npm ci
+    - npm test
+  variables:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
+    JWT_SECRET: testsecret
+    INTERNAL_SERVICE_TOKEN: test_internal_token
+    AUTH_SERVICE_URL: http://user-service:4000
+    SESSION_SERVICE_URL: http://session-service:4002
+  services:
+    - name: postgres:15
+      alias: postgres
+      variables:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: skillbridge
+
+test:frontend:
+  stage: test
+  image: node:20-alpine
+  only:
+    - main
+    - develop
+    - merge_requests
+  script:
+    - cd frontend
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 hour
+
+# ─── STAGE: BUILD + PUSH (combined per service) ──────────────
+# We combine build & push so we don't store large images as artifacts.
+# Each job builds the Docker image and immediately pushes to ECR.
+
+build-push:user-service:
+  <<: *docker_build_push
+  stage: build
+  variables:
+    SERVICE_NAME: user-service
+  only:
+    - main
+
+build-push:profile-service:
+  <<: *docker_build_push
+  stage: build
+  variables:
+    SERVICE_NAME: profile-service
+  only:
+    - main
+
+build-push:session-service:
+  <<: *docker_build_push
+  stage: build
+  variables:
+    SERVICE_NAME: session-service
+  only:
+    - main
+
+build-push:search-service:
+  <<: *docker_build_push
+  stage: build
+  variables:
+    SERVICE_NAME: search-service
+  only:
+    - main
+
+build-push:communication-service:
+  <<: *docker_build_push
+  stage: build
+  variables:
+    SERVICE_NAME: communication-service
+  only:
+    - main
+
+build-push:analytics-service:
+  <<: *docker_build_push
+  stage: build
+  variables:
+    SERVICE_NAME: analytics-service
+  only:
+    - main
+
+build-push:video-call-service:
+  <<: *docker_build_push
+  stage: build
+  variables:
+    SERVICE_NAME: video-call-service
+  only:
+    - main
+
+build-push:frontend:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  <<: *aws_setup
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/skillbridge-frontend:latest ./frontend
+    - docker push $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/skillbridge-frontend:latest
+  only:
+    - main
+
+# ─── STAGE: PUSH (tag only — images already in ECR) ──────────
+# This stage is a lightweight tag-promotion step.
+# It tags the commit-sha image as "stable" after all builds pass.
+
+promote:stable-tags:
+  stage: push
+  image: amazon/aws-cli:latest
+  script:
+    - |
+      SERVICES="user-service profile-service session-service search-service communication-service analytics-service video-call-service skillbridge-frontend"
+      for SVC in $SERVICES; do
+        MANIFEST=$(aws ecr batch-get-image \
+          --repository-name $SVC \
+          --image-ids imageTag=$CI_COMMIT_SHORT_SHA \
+          --query 'images[].imageManifest' \
+          --output text)
+        aws ecr put-image \
+          --repository-name $SVC \
+          --image-tag stable \
+          --image-manifest "$MANIFEST" || true
+      done
+  only:
+    - main
+
+# ─── STAGE: DEPLOY ───────────────────────────────────────────
+
+deploy:eks:
+  stage: deploy
+  image: alpine:3.19
+  <<: *aws_setup
+  script:
+    # Install kubectl
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x kubectl && mv kubectl /usr/local/bin/
+
+    # Update kubeconfig for EKS
+    - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+    # Create/update Kubernetes secrets from CI variables
+    - |
+      kubectl create secret generic skillbridge-secrets \
+        --namespace=$K8S_NAMESPACE \
+        --from-literal=JWT_SECRET="$JWT_SECRET" \
+        --from-literal=INTERNAL_SERVICE_TOKEN="$INTERNAL_SERVICE_TOKEN" \
+        --from-literal=DB_PASSWORD="$DB_PASSWORD" \
+        --from-literal=DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@${RDS_ENDPOINT}:5432/skillbridge" \
+        --save-config \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    # Apply all manifests
+    - kubectl apply -f k8s/namespace.yaml
+    - kubectl apply -f k8s/configmap.yaml
+    - kubectl apply -f k8s/secrets.yaml
+    - kubectl apply -f k8s/services/
+    - kubectl apply -f k8s/ingress.yaml
+
+    # Rolling update — set the new image tag on each deployment
+    - |
+      SERVICES="user-service profile-service session-service search-service communication-service analytics-service video-call-service"
+      for SVC in $SERVICES; do
+        kubectl set image deployment/$SVC \
+          $SVC=$ECR_REGISTRY/$SVC:$CI_COMMIT_SHORT_SHA \
+          --namespace=$K8S_NAMESPACE
+      done
+    - |
+      kubectl set image deployment/frontend \
+        frontend=$ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA \
+        --namespace=$K8S_NAMESPACE
+
+    # Wait for rollouts
+    - |
+      ALL_DEPLOYMENTS="user-service profile-service session-service search-service communication-service analytics-service video-call-service frontend"
+      for DEP in $ALL_DEPLOYMENTS; do
+        kubectl rollout status deployment/$DEP --namespace=$K8S_NAMESPACE --timeout=180s
+      done
+
+  environment:
+    name: production
+    url: https://skillbridge.yourdomain.com
+  only:
+    - main
+  when: on_success

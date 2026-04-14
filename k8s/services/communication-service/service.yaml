@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: communication-service
+  namespace: skillbridge
+  labels:
+    app: communication-service
+  annotations:
+    # Sticky sessions for Socket.IO — ALB hashes on client IP
+    service.beta.kubernetes.io/aws-load-balancer-stickiness-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-stickiness-lb-cookie-duration-seconds: "86400"
+spec:
+  type: ClusterIP
+  # ClientIP affinity ensures internal K8s traffic also sticks to same pod
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 86400
+  selector:
+    app: communication-service
+  ports:
+    - name: http
+      port: 4004
+      targetPort: 4004
+      protocol: TCP

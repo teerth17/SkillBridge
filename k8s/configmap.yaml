@@ -1,0 +1,36 @@
+# ============================================================
+# ConfigMap — non-sensitive shared environment variables
+# Sensitive values (JWT_SECRET, DB_PASSWORD, etc.) live in
+# k8s/secrets.yaml and are injected by the CI pipeline.
+# ============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skillbridge-config
+  namespace: skillbridge
+data:
+  # Service discovery — same names as Docker Compose, just works in K8s ClusterIP
+  AUTH_SERVICE_URL: "http://user-service:4000"
+  PROFILE_SERVICE_URL: "http://profile-service:4001"
+  SESSION_SERVICE_URL: "http://session-service:4002"
+  SEARCH_SERVICE_URL: "http://search-service:4003"
+  COMMUNICATION_SERVICE_URL: "http://communication-service:4004"
+  ANALYTICS_SERVICE_URL: "http://analytics-service:4005"
+  VIDEO_CALL_SERVICE_URL: "http://video-call-service:4006"
+
+  # Ports
+  USER_SERVICE_PORT: "4000"
+  PROFILE_SERVICE_PORT: "4001"
+  SESSION_SERVICE_PORT: "4002"
+  SEARCH_SERVICE_PORT: "4003"
+  COMMUNICATION_SERVICE_PORT: "4004"
+  ANALYTICS_SERVICE_PORT: "4005"
+  VIDEO_CALL_SERVICE_PORT: "4006"
+
+  # Node environment
+  NODE_ENV: "production"
+
+  # Jitsi — update JITSI_BASE_URL to your EC2 public IP after provisioning.
+  # This is overridden per-deployment via CI variable JITSI_BASE_URL.
+  # Placeholder shown here; the real value comes from the Secret.
+  JITSI_BASE_URL: "http://REPLACE_WITH_JITSI_EC2_IP:8000"
