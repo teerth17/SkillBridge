@@ -49,12 +49,12 @@ stages:
   image: docker:24
   services:
     - docker:24-dind
-  <<: *aws_setup
-  script:
-    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/$SERVICE_NAME:latest ./backend/services/$SERVICE_NAME
-    - docker push $ECR_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/$SERVICE_NAME:latest
+  before_script:
+    - apk add --no-cache python3 py3-pip
+    - pip3 install awscli --break-system-packages
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $AWS_REGION
 
 # ─── STAGE: TEST ─────────────────────────────────────────────
 
@@ -285,9 +285,9 @@ promote:stable-tags:
   stage: push
   image: amazon/aws-cli:latest
   before_script:
-    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-    - aws configure set region $AWS_REGION
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - export AWS_DEFAULT_REGION=$AWS_REGION
   script:
     - |
       SERVICES="user-service profile-service session-service search-service communication-service analytics-service video-call-service skillbridge-frontend"
