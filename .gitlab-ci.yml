@@ -185,10 +185,6 @@ build-push:profile-service:
     - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/profile-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/profile-service:latest ./backend/services/profile-service
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/profile-service:$CI_COMMIT_SHORT_SHA
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/profile-service:latest
-  variables:
-    AWS_DEFAULT_REGION: $AWS_REGION
-    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
   only: [master]
 
 build-push:session-service:
@@ -208,10 +204,6 @@ build-push:session-service:
     - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/session-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/session-service:latest ./backend/services/session-service
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/session-service:$CI_COMMIT_SHORT_SHA
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/session-service:latest
-  variables:
-    AWS_DEFAULT_REGION: $AWS_REGION
-    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
   only: [master]
 
 build-push:search-service:
@@ -231,10 +223,6 @@ build-push:search-service:
     - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/search-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/search-service:latest ./backend/services/search-service
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/search-service:$CI_COMMIT_SHORT_SHA
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/search-service:latest
-  variables:
-    AWS_DEFAULT_REGION: $AWS_REGION
-    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
   only: [master]
 
 build-push:communication-service:
@@ -254,10 +242,6 @@ build-push:communication-service:
     - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/communication-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/communication-service:latest ./backend/services/communication-service
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/communication-service:$CI_COMMIT_SHORT_SHA
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/communication-service:latest
-  variables:
-    AWS_DEFAULT_REGION: $AWS_REGION
-    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
   only: [master]
 
 build-push:analytics-service:
@@ -277,10 +261,6 @@ build-push:analytics-service:
     - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/analytics-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/analytics-service:latest ./backend/services/analytics-service
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/analytics-service:$CI_COMMIT_SHORT_SHA
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/analytics-service:latest
-  variables:
-    AWS_DEFAULT_REGION: $AWS_REGION
-    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
   only: [master]
 
 build-push:video-call-service:
@@ -300,10 +280,6 @@ build-push:video-call-service:
     - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/video-call-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/video-call-service:latest ./backend/services/video-call-service
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/video-call-service:$CI_COMMIT_SHORT_SHA
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/video-call-service:latest
-  variables:
-    AWS_DEFAULT_REGION: $AWS_REGION
-    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
   only: [master]
 
 build-push:frontend:
@@ -323,10 +299,6 @@ build-push:frontend:
     - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/skillbridge-frontend:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/skillbridge-frontend:latest ./frontend
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/skillbridge-frontend:$CI_COMMIT_SHORT_SHA
     - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/skillbridge-frontend:latest
-  variables:
-    AWS_DEFAULT_REGION: $AWS_REGION
-    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
   only: [master]
 
 # ─── STAGE: PUSH ─────────────────────────────────────────────
