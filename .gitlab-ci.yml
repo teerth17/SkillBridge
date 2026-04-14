@@ -156,10 +156,10 @@ build-push:user-service:
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
   script:
-    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/user-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/user-service:latest ./backend/services/user-service
-    - docker push $ECR_REGISTRY/user-service:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/user-service:latest
+    - aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/user-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/user-service:latest ./backend/services/user-service
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/user-service:$CI_COMMIT_SHORT_SHA
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/user-service:latest
   variables:
     AWS_DEFAULT_REGION: $AWS_REGION
     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -173,10 +173,10 @@ build-push:profile-service:
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
   script:
-    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/profile-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/profile-service:latest ./backend/services/profile-service
-    - docker push $ECR_REGISTRY/profile-service:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/profile-service:latest
+    - aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/profile-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/profile-service:latest ./backend/services/profile-service
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/profile-service:$CI_COMMIT_SHORT_SHA
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/profile-service:latest
   variables:
     AWS_DEFAULT_REGION: $AWS_REGION
     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -190,10 +190,10 @@ build-push:session-service:
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
   script:
-    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/session-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/session-service:latest ./backend/services/session-service
-    - docker push $ECR_REGISTRY/session-service:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/session-service:latest
+    - aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/session-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/session-service:latest ./backend/services/session-service
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/session-service:$CI_COMMIT_SHORT_SHA
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/session-service:latest
   variables:
     AWS_DEFAULT_REGION: $AWS_REGION
     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -207,10 +207,10 @@ build-push:search-service:
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
   script:
-    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/search-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/search-service:latest ./backend/services/search-service
-    - docker push $ECR_REGISTRY/search-service:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/search-service:latest
+    - aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/search-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/search-service:latest ./backend/services/search-service
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/search-service:$CI_COMMIT_SHORT_SHA
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/search-service:latest
   variables:
     AWS_DEFAULT_REGION: $AWS_REGION
     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -224,10 +224,10 @@ build-push:communication-service:
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
   script:
-    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/communication-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/communication-service:latest ./backend/services/communication-service
-    - docker push $ECR_REGISTRY/communication-service:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/communication-service:latest
+    - aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/communication-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/communication-service:latest ./backend/services/communication-service
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/communication-service:$CI_COMMIT_SHORT_SHA
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/communication-service:latest
   variables:
     AWS_DEFAULT_REGION: $AWS_REGION
     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -241,10 +241,10 @@ build-push:analytics-service:
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
   script:
-    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/analytics-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/analytics-service:latest ./backend/services/analytics-service
-    - docker push $ECR_REGISTRY/analytics-service:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/analytics-service:latest
+    - aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/analytics-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/analytics-service:latest ./backend/services/analytics-service
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/analytics-service:$CI_COMMIT_SHORT_SHA
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/analytics-service:latest
   variables:
     AWS_DEFAULT_REGION: $AWS_REGION
     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -258,10 +258,10 @@ build-push:video-call-service:
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
   script:
-    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/video-call-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/video-call-service:latest ./backend/services/video-call-service
-    - docker push $ECR_REGISTRY/video-call-service:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/video-call-service:latest
+    - aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/video-call-service:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/video-call-service:latest ./backend/services/video-call-service
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/video-call-service:$CI_COMMIT_SHORT_SHA
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/video-call-service:latest
   variables:
     AWS_DEFAULT_REGION: $AWS_REGION
     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
@@ -275,10 +275,10 @@ build-push:frontend:
   before_script:
     - apt-get update -qq && apt-get install -y -qq docker.io
   script:
-    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
-    - docker build -t $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/skillbridge-frontend:latest ./frontend
-    - docker push $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA
-    - docker push $ECR_REGISTRY/skillbridge-frontend:latest
+    - aws ecr get-login-password | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+    - docker build -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/skillbridge-frontend:$CI_COMMIT_SHORT_SHA -t ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/skillbridge-frontend:latest ./frontend
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/skillbridge-frontend:$CI_COMMIT_SHORT_SHA
+    - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/skillbridge-frontend:latest
   variables:
     AWS_DEFAULT_REGION: $AWS_REGION
     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
