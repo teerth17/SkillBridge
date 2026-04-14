@@ -149,100 +149,124 @@ test:frontend:
 
 # ─── STAGE: BUILD + PUSH ─────────────────────────────────────
 
-.build_push_script: &build_push_script
-  - pip3 install awscli --break-system-packages 2>/dev/null || pip3 install awscli
-  - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-  - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-  - aws configure set region $AWS_REGION
-  - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
-  - docker build -t $ECR_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/$SERVICE_NAME:latest ./backend/services/$SERVICE_NAME
-  - docker push $ECR_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA
-  - docker push $ECR_REGISTRY/$SERVICE_NAME:latest
-
 build-push:user-service:
   stage: build
-  image: docker:24
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   services: [docker:24-dind]
-  before_script: [apk add --no-cache python3 py3-pip]
-  script: *build_push_script
+  before_script:
+    - apk add --no-cache docker-cli
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/user-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/user-service:latest ./backend/services/user-service
+    - docker push $ECR_REGISTRY/user-service:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/user-service:latest
   variables:
-    SERVICE_NAME: user-service
+    AWS_DEFAULT_REGION: $AWS_REGION
   only: [master]
 
 build-push:profile-service:
   stage: build
-  image: docker:24
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   services: [docker:24-dind]
-  before_script: [apk add --no-cache python3 py3-pip]
-  script: *build_push_script
+  before_script:
+    - apk add --no-cache docker-cli
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/profile-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/profile-service:latest ./backend/services/profile-service
+    - docker push $ECR_REGISTRY/profile-service:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/profile-service:latest
   variables:
-    SERVICE_NAME: profile-service
+    AWS_DEFAULT_REGION: $AWS_REGION
   only: [master]
 
 build-push:session-service:
   stage: build
-  image: docker:24
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   services: [docker:24-dind]
-  before_script: [apk add --no-cache python3 py3-pip]
-  script: *build_push_script
+  before_script:
+    - apk add --no-cache docker-cli
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/session-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/session-service:latest ./backend/services/session-service
+    - docker push $ECR_REGISTRY/session-service:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/session-service:latest
   variables:
-    SERVICE_NAME: session-service
+    AWS_DEFAULT_REGION: $AWS_REGION
   only: [master]
 
 build-push:search-service:
   stage: build
-  image: docker:24
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   services: [docker:24-dind]
-  before_script: [apk add --no-cache python3 py3-pip]
-  script: *build_push_script
+  before_script:
+    - apk add --no-cache docker-cli
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/search-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/search-service:latest ./backend/services/search-service
+    - docker push $ECR_REGISTRY/search-service:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/search-service:latest
   variables:
-    SERVICE_NAME: search-service
+    AWS_DEFAULT_REGION: $AWS_REGION
   only: [master]
 
 build-push:communication-service:
   stage: build
-  image: docker:24
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   services: [docker:24-dind]
-  before_script: [apk add --no-cache python3 py3-pip]
-  script: *build_push_script
+  before_script:
+    - apk add --no-cache docker-cli
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/communication-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/communication-service:latest ./backend/services/communication-service
+    - docker push $ECR_REGISTRY/communication-service:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/communication-service:latest
   variables:
-    SERVICE_NAME: communication-service
+    AWS_DEFAULT_REGION: $AWS_REGION
   only: [master]
 
 build-push:analytics-service:
   stage: build
-  image: docker:24
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   services: [docker:24-dind]
-  before_script: [apk add --no-cache python3 py3-pip]
-  script: *build_push_script
+  before_script:
+    - apk add --no-cache docker-cli
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/analytics-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/analytics-service:latest ./backend/services/analytics-service
+    - docker push $ECR_REGISTRY/analytics-service:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/analytics-service:latest
   variables:
-    SERVICE_NAME: analytics-service
+    AWS_DEFAULT_REGION: $AWS_REGION
   only: [master]
 
 build-push:video-call-service:
   stage: build
-  image: docker:24
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   services: [docker:24-dind]
-  before_script: [apk add --no-cache python3 py3-pip]
-  script: *build_push_script
+  before_script:
+    - apk add --no-cache docker-cli
+  script:
+    - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - docker build -t $ECR_REGISTRY/video-call-service:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/video-call-service:latest ./backend/services/video-call-service
+    - docker push $ECR_REGISTRY/video-call-service:$CI_COMMIT_SHORT_SHA
+    - docker push $ECR_REGISTRY/video-call-service:latest
   variables:
-    SERVICE_NAME: video-call-service
+    AWS_DEFAULT_REGION: $AWS_REGION
   only: [master]
 
 build-push:frontend:
   stage: build
-  image: docker:24
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   services: [docker:24-dind]
-  before_script: [apk add --no-cache python3 py3-pip]
+  before_script:
+    - apk add --no-cache docker-cli
   script:
-    - pip3 install awscli --break-system-packages 2>/dev/null || pip3 install awscli
-    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-    - aws configure set region $AWS_REGION
     - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
     - docker build -t $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/skillbridge-frontend:latest ./frontend
     - docker push $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA
     - docker push $ECR_REGISTRY/skillbridge-frontend:latest
+  variables:
+    AWS_DEFAULT_REGION: $AWS_REGION
   only: [master]
 
 # ─── STAGE: PUSH ─────────────────────────────────────────────
