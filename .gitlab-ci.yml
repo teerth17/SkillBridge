@@ -14,7 +14,7 @@ stages:
   - push
   - deploy
 
-# ─── SHARED BEFORE_SCRIPT (loads DB schema) ──────────────────
+# ─── SHARED: load DB schema before tests ─────────────────────
 .load_schema: &load_schema
   - apk add --no-cache postgresql-client
   - |
@@ -27,7 +27,7 @@ stages:
   - PGPASSWORD=postgres psql -h postgres -U postgres -d skillbridge -f backend/db/data.sql
   - echo "Schema loaded"
 
-# ─── SHARED POSTGRES SERVICE ─────────────────────────────────
+# ─── SHARED: postgres service ────────────────────────────────
 .postgres_service: &postgres_service
   - name: postgres:15
     alias: postgres
@@ -36,41 +36,16 @@ stages:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: skillbridge
 
-# ─── SHARED AWS SETUP ────────────────────────────────────────
-.aws_setup: &aws_setup
-  before_script:
-    - apk add --no-cache aws-cli
-    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-    - aws configure set region $AWS_REGION
-
-# ─── SHARED BUILD+PUSH TEMPLATE ──────────────────────────────
-.docker_build_push: &docker_build_push
-  image: docker:24
-  services:
-    - docker:24-dind
-  before_script:
-    - apk add --no-cache python3 py3-pip
-    - pip3 install awscli --break-system-packages
-    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-    - aws configure set region $AWS_REGION
-
 # ─── STAGE: TEST ─────────────────────────────────────────────
 
 test:user-service:
   stage: test
   image: node:20-alpine
-  only:
-    - master
-    - develop
-    - merge_requests
+  only: [master, develop, merge_requests]
   services: *postgres_service
   before_script: *load_schema
   script:
-    - cd backend/services/user-service
-    - npm ci
-    - npm test
+    - cd backend/services/user-service && npm ci && npm test
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
@@ -78,16 +53,11 @@ test:user-service:
 test:profile-service:
   stage: test
   image: node:20-alpine
-  only:
-    - master
-    - develop
-    - merge_requests
+  only: [master, develop, merge_requests]
   services: *postgres_service
   before_script: *load_schema
   script:
-    - cd backend/services/profile-service
-    - npm ci
-    - npm test
+    - cd backend/services/profile-service && npm ci && npm test
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
@@ -96,16 +66,11 @@ test:profile-service:
 test:session-service:
   stage: test
   image: node:20-alpine
-  only:
-    - master
-    - develop
-    - merge_requests
+  only: [master, develop, merge_requests]
   services: *postgres_service
   before_script: *load_schema
   script:
-    - cd backend/services/session-service
-    - npm ci
-    - npm test
+    - cd backend/services/session-service && npm ci && npm test
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
@@ -116,16 +81,11 @@ test:session-service:
 test:communication-service:
   stage: test
   image: node:20-alpine
-  only:
-    - master
-    - develop
-    - merge_requests
+  only: [master, develop, merge_requests]
   services: *postgres_service
   before_script: *load_schema
   script:
-    - cd backend/services/communication-service
-    - npm ci
-    - npm test
+    - cd backend/services/communication-service && npm ci && npm test
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
@@ -136,16 +96,11 @@ test:communication-service:
 test:video-call-service:
   stage: test
   image: node:20-alpine
-  only:
-    - master
-    - develop
-    - merge_requests
+  only: [master, develop, merge_requests]
   services: *postgres_service
   before_script: *load_schema
   script:
-    - cd backend/services/video-call-service
-    - npm ci
-    - npm test
+    - cd backend/services/video-call-service && npm ci && npm test
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
@@ -158,16 +113,11 @@ test:video-call-service:
 test:search-service:
   stage: test
   image: node:20-alpine
-  only:
-    - master
-    - develop
-    - merge_requests
+  only: [master, develop, merge_requests]
   services: *postgres_service
   before_script: *load_schema
   script:
-    - cd backend/services/search-service
-    - npm ci
-    - npm test
+    - cd backend/services/search-service && npm ci && npm test
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
@@ -176,16 +126,11 @@ test:search-service:
 test:analytics-service:
   stage: test
   image: node:20-alpine
-  only:
-    - master
-    - develop
-    - merge_requests
+  only: [master, develop, merge_requests]
   services: *postgres_service
   before_script: *load_schema
   script:
-    - cd backend/services/analytics-service
-    - npm ci
-    - npm test
+    - cd backend/services/analytics-service && npm ci && npm test
   variables:
     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/skillbridge
     JWT_SECRET: testsecret
@@ -194,14 +139,9 @@ test:analytics-service:
 test:frontend:
   stage: test
   image: node:20-alpine
-  only:
-    - master
-    - develop
-    - merge_requests
+  only: [master, develop, merge_requests]
   script:
-    - cd frontend
-    - npm ci
-    - npm run build
+    - cd frontend && npm ci && npm run build
   artifacts:
     paths:
       - frontend/dist/
@@ -209,75 +149,101 @@ test:frontend:
 
 # ─── STAGE: BUILD + PUSH ─────────────────────────────────────
 
+.build_push_script: &build_push_script
+  - pip3 install awscli --break-system-packages 2>/dev/null || pip3 install awscli
+  - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+  - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+  - aws configure set region $AWS_REGION
+  - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+  - docker build -t $ECR_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/$SERVICE_NAME:latest ./backend/services/$SERVICE_NAME
+  - docker push $ECR_REGISTRY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA
+  - docker push $ECR_REGISTRY/$SERVICE_NAME:latest
+
 build-push:user-service:
-  <<: *docker_build_push
   stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  before_script: [apk add --no-cache python3 py3-pip]
+  script: *build_push_script
   variables:
     SERVICE_NAME: user-service
-  only:
-    - master
+  only: [master]
 
 build-push:profile-service:
-  <<: *docker_build_push
   stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  before_script: [apk add --no-cache python3 py3-pip]
+  script: *build_push_script
   variables:
     SERVICE_NAME: profile-service
-  only:
-    - master
+  only: [master]
 
 build-push:session-service:
-  <<: *docker_build_push
   stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  before_script: [apk add --no-cache python3 py3-pip]
+  script: *build_push_script
   variables:
     SERVICE_NAME: session-service
-  only:
-    - master
+  only: [master]
 
 build-push:search-service:
-  <<: *docker_build_push
   stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  before_script: [apk add --no-cache python3 py3-pip]
+  script: *build_push_script
   variables:
     SERVICE_NAME: search-service
-  only:
-    - master
+  only: [master]
 
 build-push:communication-service:
-  <<: *docker_build_push
   stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  before_script: [apk add --no-cache python3 py3-pip]
+  script: *build_push_script
   variables:
     SERVICE_NAME: communication-service
-  only:
-    - master
+  only: [master]
 
 build-push:analytics-service:
-  <<: *docker_build_push
   stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  before_script: [apk add --no-cache python3 py3-pip]
+  script: *build_push_script
   variables:
     SERVICE_NAME: analytics-service
-  only:
-    - master
+  only: [master]
 
 build-push:video-call-service:
-  <<: *docker_build_push
   stage: build
+  image: docker:24
+  services: [docker:24-dind]
+  before_script: [apk add --no-cache python3 py3-pip]
+  script: *build_push_script
   variables:
     SERVICE_NAME: video-call-service
-  only:
-    - master
+  only: [master]
 
 build-push:frontend:
   stage: build
   image: docker:24
-  services:
-    - docker:24-dind
-  <<: *aws_setup
+  services: [docker:24-dind]
+  before_script: [apk add --no-cache python3 py3-pip]
   script:
+    - pip3 install awscli --break-system-packages 2>/dev/null || pip3 install awscli
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $AWS_REGION
     - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
     - docker build -t $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA -t $ECR_REGISTRY/skillbridge-frontend:latest ./frontend
     - docker push $ECR_REGISTRY/skillbridge-frontend:$CI_COMMIT_SHORT_SHA
     - docker push $ECR_REGISTRY/skillbridge-frontend:latest
-  only:
-    - master
+  only: [master]
 
 # ─── STAGE: PUSH ─────────────────────────────────────────────
 
@@ -302,15 +268,19 @@ promote:stable-tags:
           --image-tag stable \
           --image-manifest "$MANIFEST" || true
       done
-  only:
-    - master
+  only: [master]
 
 # ─── STAGE: DEPLOY ───────────────────────────────────────────
 
 deploy:eks:
   stage: deploy
   image: alpine:3.19
-  <<: *aws_setup
+  before_script:
+    - apk add --no-cache curl python3 py3-pip
+    - pip3 install awscli --break-system-packages 2>/dev/null || pip3 install awscli
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set region $AWS_REGION
   script:
     - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
     - chmod +x kubectl && mv kubectl /usr/local/bin/
@@ -347,6 +317,5 @@ deploy:eks:
   environment:
     name: production
     url: https://skillbridge.yourdomain.com
-  only:
-    - master
+  only: [master]
   when: on_success
