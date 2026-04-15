@@ -136,7 +136,7 @@ spec:
                   number: 4005
 
           # ── Video Calls ──────────────────────────────────────
-          - path: /video
+          - path: /video-calls
             pathType: Prefix
             backend:
               service:
