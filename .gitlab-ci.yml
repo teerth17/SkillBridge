@@ -348,7 +348,7 @@ deploy:eks:
         --from-literal=JWT_SECRET="$JWT_SECRET" \
         --from-literal=INTERNAL_SERVICE_TOKEN="$INTERNAL_SERVICE_TOKEN" \
         --from-literal=DB_PASSWORD="$DB_PASSWORD" \
-        --from-literal=DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@${RDS_ENDPOINT}:5432/skillbridge" \
+        --from-literal=DATABASE_URL="postgresql://postgres:${DB_PASSWORD}@${RDS_ENDPOINT}:5432/skillbridge?sslmode=no-verify" \
         --save-config \
         --dry-run=client -o yaml | kubectl apply -f -
     - kubectl apply -f k8s/namespace.yaml
