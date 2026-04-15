@@ -109,6 +109,14 @@ spec:
                 port:
                   number: 4004
 
+          - path: /communication
+            pathType: Prefix
+            backend:
+              service:
+                name: communication-service
+                port:
+                  number: 4004
+
           # Socket.IO upgrade path — must be listed explicitly
           - path: /socket.io
             pathType: Prefix
