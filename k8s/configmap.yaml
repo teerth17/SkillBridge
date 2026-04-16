@@ -33,4 +33,4 @@ data:
   # Jitsi — update JITSI_BASE_URL to your EC2 public IP after provisioning.
   # This is overridden per-deployment via CI variable JITSI_BASE_URL.
   # Placeholder shown here; the real value comes from the Secret.
-  JITSI_BASE_URL: "http://REPLACE_WITH_JITSI_EC2_IP:8000"
+  JITSI_BASE_URL: "https://meet.jit.si"
